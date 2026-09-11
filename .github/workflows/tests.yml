@@ -22,16 +22,21 @@ jobs:
 
       - name: Run pytest
         # Không có binary Stockfish/Maia trên runner — test engine tự skip.
-        # Log được đẩy vào job summary để đọc kết quả mà không phải mở log đầy đủ.
+        # Kết quả được đẩy vào job summary, và khi đỏ thì vào cả annotation,
+        # để xem được ngay ở trang PR mà không phải mở log đầy đủ.
         run: |
           set +e
           pytest -q > pytest.log 2>&1
           code=$?
+          cat pytest.log
           {
             echo "## pytest (exit $code)"
             echo '```'
-            tail -n 120 pytest.log
+            tail -n 150 pytest.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          cat pytest.log
+          if [ "$code" -ne 0 ]; then
+            message=$(tail -n 60 pytest.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=pytest exit $code::$message"
+          fi
           exit $code
