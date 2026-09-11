@@ -23,7 +23,6 @@ import csv
 import json
 import logging
 import re
-import sys
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -36,6 +35,7 @@ from chessvi.data.mask import MoveContext, find_move_tokens
 from chessvi.engine.facts import PIECE_NAMES_VI, SIDE_VI, PositionFacts, extract_facts
 from chessvi.eval.predictor import Predictor, build_predictor
 from chessvi.eval.puzzle_acc import build_puzzle_prompt
+from chessvi.logging_setup import configure_logging
 from chessvi.train.dataset import iter_records
 
 logger = logging.getLogger(__name__)
@@ -383,11 +383,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO, handlers=[handler], force=True
-    )
+    configure_logging(args.verbose)
 
     model_name = args.model_name or args.model_path or args.backend
     if args.answers is not None:

@@ -16,7 +16,6 @@ import argparse
 import json
 import logging
 import random
-import sys
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import asdict, dataclass
@@ -26,6 +25,7 @@ from typing import Any
 import chess
 
 from chessvi.config import Paths
+from chessvi.logging_setup import configure_logging
 
 logger = logging.getLogger(__name__)
 
@@ -400,11 +400,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _configure_logging(verbose: bool) -> None:
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.INFO, handlers=[handler], force=True
-    )
+    configure_logging(verbose)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

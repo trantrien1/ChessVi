@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,6 +27,7 @@ from typing import Any
 
 from chessvi.config import hf_token
 from chessvi.data.puzzles import balanced_order
+from chessvi.logging_setup import TIMESTAMPED_FORMAT, configure_logging
 from chessvi.train.dataset import iter_records
 from chessvi.train.reward import ANSWER_TEMPLATE, puzzle_reward
 from chessvi.train.sft import (
@@ -305,11 +305,7 @@ def settings_from_args(args: argparse.Namespace) -> GRPOSettings:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO, handlers=[handler], force=True
-    )
+    configure_logging(args.verbose, fmt=TIMESTAMPED_FORMAT)
     run_grpo(settings_from_args(args))
     return 0
 

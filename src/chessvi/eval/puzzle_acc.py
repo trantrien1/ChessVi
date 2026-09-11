@@ -12,7 +12,6 @@ from __future__ import annotations
 import argparse
 import csv
 import logging
-import sys
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -22,6 +21,7 @@ from typing import Any
 import chess
 
 from chessvi.eval.predictor import Predictor, build_predictor
+from chessvi.logging_setup import configure_logging
 from chessvi.train.dataset import iter_records
 from chessvi.train.grpo import SYSTEM_PROMPT, USER_TEMPLATE
 from chessvi.train.reward import extract_move
@@ -238,11 +238,7 @@ def _build(args: argparse.Namespace) -> Predictor:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO, handlers=[handler], force=True
-    )
+    configure_logging(args.verbose)
 
     if args.backend != "echo" and not args.model_path:
         logger.error("Backend %s cần --model-path", args.backend)

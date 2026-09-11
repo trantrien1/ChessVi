@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import sys
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Sequence
@@ -28,6 +27,7 @@ from typing import Any
 from chessvi.config import Paths
 from chessvi.data.glossary import enforce_glossary
 from chessvi.data.mask import mask, unmask
+from chessvi.logging_setup import configure_logging
 
 logger = logging.getLogger(__name__)
 
@@ -439,13 +439,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _configure_logging(verbose: bool) -> None:
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.INFO,
-        handlers=[handler],
-        force=True,
-    )
+    configure_logging(verbose)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

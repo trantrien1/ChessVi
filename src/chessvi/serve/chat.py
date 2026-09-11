@@ -25,6 +25,7 @@ from chessvi.data.mask import parse_move
 from chessvi.engine.facts import PositionFacts, extract_facts
 from chessvi.engine.opponent import Opponent
 from chessvi.engine.stockfish import StockfishEngine
+from chessvi.logging_setup import configure_logging
 from chessvi.serve.guard import guarded_generate
 from chessvi.serve.prompt import ChatTurn, build_prompt
 
@@ -256,11 +257,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO, handlers=[handler], force=True
-    )
+    configure_logging(args.verbose)
 
     paths = Paths()
     serve_config = ServeConfig()

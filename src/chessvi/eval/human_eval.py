@@ -24,12 +24,12 @@ import csv
 import itertools
 import logging
 import random
-import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from chessvi.logging_setup import configure_logging
 from chessvi.train.dataset import iter_records
 
 logger = logging.getLogger(__name__)
@@ -337,11 +337,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO, handlers=[handler], force=True
-    )
+    configure_logging(args.verbose)
 
     if args.command == "export":
         rows = export_samples(iter_records(args.input), size=args.n, seed=args.seed)
