@@ -16,9 +16,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Cận dưới của datasets và huggingface-hub KHÔNG tuỳ tiện: chúng là ràng buộc
+# cứng của trl/vllm bên dưới. Hạ xuống là pip báo ResolutionImpossible, không
+# phải cảnh báo — cả extra sẽ không cài được.
 data = [
-    "datasets==4.5.0",
-    "huggingface-hub==1.11.0",
+    "datasets==4.8.5",       # trl 1.13.0 đòi datasets>=4.7.0
+    "huggingface-hub==1.31.0",  # vllm 0.28.0 đòi huggingface_hub>=1.27.0
     "pyarrow==23.0.0",
     "pandas==2.3.3",
 ]
@@ -28,11 +31,15 @@ train = [
     "trl==1.13.0",
     "accelerate==1.15.0",
     "bitsandbytes==0.50.2",
-    "datasets==4.5.0",
+    "datasets==4.8.5",       # phải khớp extra data ở trên
 ]
 # Chỉ dùng trên Colab khi rollout GRPO. KHÔNG cài local (4GB VRAM sẽ OOM).
+# Vì sao 0.28.0 chứ không phải bản mới nhất: trl 1.13.0 khai báo
+# `vllm<=0.28.0` trong extra vllm, và vllm 0.29.0 lại đòi transformers>=5.10.4
+# — hai điều đó cộng lại khiến 0.29.0 không thể cùng tồn tại với stack này.
+# Nâng vllm thì phải nâng cả trl lẫn transformers cùng lúc.
 rl = [
-    "vllm==0.29.0",
+    "vllm==0.28.0",
 ]
 serve = [
     "llama-cpp-python==0.3.35",
