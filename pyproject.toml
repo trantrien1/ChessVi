@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chessvi"
+version = "0.1.0"
+description = "Trợ lý cờ vua tiếng Việt: chatbot giải thích nước đi + đối thủ AI theo mức Elo"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "chess-vi" }]
+
+dependencies = [
+    "chess==1.11.2",
+]
+
+[project.optional-dependencies]
+data = [
+    "datasets==4.5.0",
+    "huggingface-hub==1.11.0",
+    "pyarrow==23.0.0",
+    "pandas==2.3.3",
+]
+train = [
+    "transformers==5.5.4",
+    "peft==0.20.0",
+    "trl==1.13.0",
+    "accelerate==1.15.0",
+    "bitsandbytes==0.50.2",
+    "datasets==4.5.0",
+]
+# Chỉ dùng trên Colab khi rollout GRPO. KHÔNG cài local (4GB VRAM sẽ OOM).
+rl = [
+    "vllm==0.29.0",
+]
+serve = [
+    "llama-cpp-python==0.3.35",
+]
+dev = [
+    "pytest==9.1.1",
+    "hypothesis==6.168.0",
+]
+
+[project.scripts]
+chessvi-chat = "chessvi.serve.chat:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chessvi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "engine: cần binary UCI engine (Stockfish/Maia) — tự skip nếu thiếu",
+]

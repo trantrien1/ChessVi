@@ -1,0 +1,520 @@
+We start from rnb1qbr1/pp1pp3/5pk1/2p3pp/P2P2nB/N1P1P3/1P3PPP/1R2KBNR w K - 0 13, where White has the initiative.
+Best move: g3 (engine line g3 Nh3 d5).
+The opening continued 1. d3 f6 2. Bg5 c5 3. a4 Nh6 4. c3 Qa5 5. Bh4 g5 6. Na3 Qd8 and the position stayed balanced.
+Position (FEN): r2qkb1r/ppp1p1pp/2np3n/2P2p2/8/1P3PPb/P2PP2P/RNBQKBNR w KQkq - 1 6. White to move.
+Instead of b4, f4 wins material on the spot.
+The opening continued 1. c4 Nc6 2. b3 d6 3. f3 Bh3 4. c5 f5 5. g3 Nh6 and the position stayed balanced.
+A4 paper size is the European default; Bed linen is extra.
+We start from rnb2bnr/1p1p1k2/p1p3pp/1N2pp2/2P5/qQ6/RP1PPPPP/1NB1KBR1 w - - 0 12, where White has the initiative.
+Black blundered with N5xa3; Qg3 would have held the balance.
+1. c3 Nf6 2. a3 e5 3. Nf3 c6 4. Qc2 Qe7 5. Rg1 Ng8 6. Qd1 a6 — a typical tabiya for this line.
+Given the FEN rnbqk2r/1p1p4/5p2/p1pnp1pp/4P3/b1PP2PP/PP1QBP2/R1BN1KNR w kq - 1 11 the engine evaluates the position as roughly equal.
+In UCI notation that is c3c4; the promotion g2g1b would be winning.
+Game score: 1. d3 h5 2. Qd2 g5 3. g3 e5 4. Nc3 Ba3 5. Nd1 Ne7 6. h3 f6
+Position (FEN): r2qkbnr/p1p1p1pp/b1n2p2/1p1p4/P3N3/3QPP2/1PPP2PP/R1B1KBNR w KQkq - 0 8. White to move.
+Black blundered with Nxf6+; Nc3 would have held the balance.
+1. a4 Nc6 2. e3 b6 3. f3 Ba6 4. Qe2 b5 5. Nc3 d6 6. Ne4 f6 — a typical tabiya for this line.
+Given the FEN r1bqk2r/1pp2p1p/p3pnp1/2bp4/Pn2P2P/1PN2PP1/2PP3R/R1BQKBN1 b Qkq - 0 9 the engine evaluates the position as roughly equal.
+After d4 the threat of h6 is hard to meet.
+1. h3 e6 2. f3 a6 3. g3 g6 4. Nc3 Nf6 5. b3 Nc6 6. h4 Nb4 — a typical tabiya for this line.
+Position (FEN): rnq3nr/1b2pk1p/p1pp2p1/1p2P1b1/8/PP3P1P/2PP2PR/RNB1KBN1 w Q - 0 11. White to move.
+The candidate moves are Be2, Bd3 and Nc3.
+Game score: 1. e4 g6 2. Qh5 b5 3. Qd5 Bb7 4. h3 a6 5. e5 Bh6 6. Qxf7+ Kxf7
+Position (FEN): rnbqkbnr/ppppp3/5pp1/7p/4P3/N4P2/PPPP2PP/R1BQKBNR w KQkq - 0 4. White to move.
+After Bd3 the threat of Nb1 is hard to meet.
+The opening continued 1. f3 g6 2. Na3 h5 3. e4 f6 and the position stayed balanced.
+Given the FEN 1nbqkbr1/3np2p/r3p3/pPp2pp1/1P6/3PPP2/2P3PP/RNBQK1RN w Q - 1 13 the engine evaluates the position as roughly equal.
+The candidate moves are h3, c3 and f4.
+Game score: 1. Nh3 a5 2. e3 Ra6 3. f3 c5 4. Bc4 Ra8 5. Rg1 b5 6. Be6 Nf6
+Position (FEN): r1b1k1nr/p2p2pp/np3q2/2p1pp2/1NPP4/4P3/PP3PPP/R1B1KBNR w KQkq - 0 9. White to move.
+Black blundered with dxe5; f4 would have held the balance.
+1. Na3 b6 2. c4 e5 3. d4 Na6 4. Qd2 Qe7 5. Nc2 f5 6. e3 Qf6 — a typical tabiya for this line.
+We start from rnbk2nr/p2p1p1Q/3b3p/qpp1P3/6p1/P3P3/BPP1KPPP/RNB3NR b - - 0 11, where Black has the initiative.
+The candidate moves are b4, Kc7 and Rxh7.
+The opening continued 1. Nf3 b5 2. d4 e5 3. Qd3 g5 4. e3 h6 5. Ng1 c5 6. Qh7 g4 and the position stayed balanced.
+We start from 1nb1qbnr/rp2p1p1/2ppkp2/p5Pp/1P6/N1P1P2N/PB1P1P1P/R2QKB1R b KQ - 0 10, where Black has the initiative.
+Best move: Qf7 (engine line Qf7 Ra6 f5).
+The opening continued 1. g3 f6 2. b3 h5 3. Bb2 Kf7 4. b4 Ke6 5. g4 a5 6. c3 Qe8 and the position stayed balanced.
+Position (FEN): r2qkb1r/p1pppp1p/b1n2n2/1p4p1/1P2P2P/1QPP4/P4PPR/RNB1KBN1 w Qkq - 0 9. White to move.
+In UCI notation that is c1e3; the promotion g2g1b would be winning.
+Game score: 1. c3 Nf6 2. h4 Nd5 3. Rh3 b6 4. Rh2 b5 5. e4 Nc6 6. b4 Nf6
+Given the FEN rn2bbnr/pp2Nk1p/1N2q3/2p2pp1/4P1P1/1P3P2/P1PP3P/R1BQKBR1 w Q - 2 13 the engine evaluates the position as roughly equal.
+13. Nxg8 is the main line, while 13... Ba6 is a sideline.
+Game score: 1. b3 d5 2. Nh3 Qd6 3. Nc3 f5 4. g4 Qb6 5. Nxd5 Bd7 6. f3 Qb5
+Given the FEN rnbqkbnr/pp1ppp1p/8/2p3p1/7P/4PP2/PPPP2P1/RNBQKBNR b KQkq - 0 3 the engine evaluates the position as roughly equal.
+Black blundered with Nf6; f6 would have held the balance.
+1. h4 c5 2. e3 g5 3. f3 — a typical tabiya for this line.
+We start from rnb1kb2/1Bp1pp1r/6p1/7p/3q2n1/1P3Q2/P1PP1PPP/RNB1K1NR w KQq - 3 10, where White has the initiative.
+After Qf6 the threat of Qf4 is hard to meet.
+Game score: 1. e4 a6 2. e5 h6 3. e6 g6 4. Be2 h5 5. Bxa6 Rh7 6. b3 Nh6
+We start from rnbqkbnr/1p1ppppp/8/p1p5/7P/2P5/PP1PPPP1/RNBQKBNR w KQkq - 0 3, where White has the initiative.
+After a4 the threat of f3 is hard to meet.
+1. h4 a5 2. c3 c5 — a typical tabiya for this line.
+We start from rnbqkbnr/1p1pppp1/p7/2p4p/4P3/2N5/PPPPBPPP/R1BQK1NR w KQkq - 0 4, where White has the initiative.
+4. b4 is the main line, while 4... h3 is a sideline.
+1. e4 c5 2. Be2 a6 3. Nc3 h5 — a typical tabiya for this line.
+Position (FEN): r1bqkbnr/ppp2pp1/4p3/1N1pn2p/8/P3PPP1/1PPP2BP/R1BQK1NR w KQk - 0 8. White to move.
+Black blundered with Nxa7; Nxc7+ would have held the balance.
+The opening continued 1. a3 Nc6 2. Nc3 Rb8 3. g3 Ne5 4. f3 Ra8 5. Bg2 h5 6. e3 e6 and the position stayed balanced.
+We start from rnbqkbnr/pp2pppp/3p4/2p5/8/1P5N/P1PPPPPP/RNBQKB1R w KQkq - 0 3, where White has the initiative.
+The candidate moves are Rg1, a3 and b4.
+1. b3 d6 2. Nh3 c5 — a typical tabiya for this line.
+The bed was already made when we arrived.
+Position (FEN): r1bqkb1r/ppp2p2/n2pp1pp/2n4P/3P1P2/P5PB/1PP1P3/R1BQK1NR w KQkq - 0 11. White to move.
+Best move: c3 (engine line c3 Nf3 Bxe6).
+Game score: 1. Nc3 g6 2. Nd5 d6 3. h4 Nc6 4. g3 Nb4 5. Nf6+ Nxf6 6. a3 Na6
+Given the FEN 1n1qkb1r/4ppp1/1p3n1p/r1pp4/6bP/B1P2PPR/P1QPP3/RN2KBN1 b Qk - 3 10 the engine evaluates the position as roughly equal.
+Black blundered with c4; Nfd7 would have held the balance.
+Game score: 1. g3 c5 2. b3 b6 3. Ba3 d5 4. b4 Bg4 5. h4 h6 6. c3 a5
+Given the FEN r1bqkbnr/1pppp1p1/n4p1p/p7/1PP5/B4N2/P2PPPPP/RN1QKB1R b KQkq - 2 5 the engine evaluates the position as roughly equal.
+5. a4 is the main line, while 5... e5 is a sideline.
+1. c4 h6 2. Nf3 f6 3. b3 a5 4. b4 Na6 5. Ba3 — a typical tabiya for this line.
+Given the FEN rnbqkbn1/pppppppr/8/7p/8/1P3N2/P1PPPPPP/RNBQKB1R w KQq - 1 3 the engine evaluates the position as roughly equal.
+Best move: d3 (engine line d3 Ng5 e4).
+1. Nf3 h5 2. b3 Rh7 — a typical tabiya for this line.
+We start from rnb1kbnr/1p1p1ppp/3qp3/p5B1/2pP4/P3PP2/1PP3PP/RN1QKBNR w KQkq - 2 7, where White has the initiative.
+7. e4 is the main line, while 7... g4 is a sideline.
+The opening continued 1. a3 a5 2. d4 e6 3. f3 c5 4. Bf4 Qb6 5. e3 c4 6. Bg5 Qd6 and the position stayed balanced.
+Be aware that the a4 format is not supported.
+Position (FEN): 1n1qkb2/1pp1pp2/3p1n1r/2P3pp/rp2P2P/PQN2P1b/3P2P1/R1B1KBNR w KQ - 1 12. White to move.
+12. e5 is the main line, while 12... Qxa4+ is a sideline.
+The opening continued 1. a3 h5 2. h4 Nf6 3. c4 Ng8 4. b4 a5 5. f3 axb4 6. Qb3 Nf6 and the position stayed balanced.
+We start from 1rbqkbnr/pp1pp2p/2n2p2/6p1/2pP4/N5PN/PPPQPP1P/R1BK1B1R b k - 0 7, where Black has the initiative.
+After a6 the threat of d5 is hard to meet.
+1. d3 g5 2. Nh3 f6 3. d4 c5 4. Na3 Nc6 5. Qd2 Rb8 6. Kd1 c4 — a typical tabiya for this line.
+We start from r1b1kb1r/p2pp2p/n1p4n/q1p2pp1/8/1P1PP3/P1PB1PPP/RN2KBNR w KQkq - 0 8, where White has the initiative.
+8. Na3 is the main line, while 8... Kd1 is a sideline.
+1. d3 Nh6 2. Bf4 f5 3. b3 c5 4. Bd2 Qa5 5. e3 g5 6. Qf3 Na6 — a typical tabiya for this line.
+She said we should be there by noon.
+Position (FEN): 1rb1kb1r/p1qpp1p1/n4n1p/1p2Bp2/2PP3P/1PN2P2/P2QP1P1/R2K1BNR w k - 0 13. White to move.
+Instead of Ke1, Kc1 wins material on the spot.
+1. h3 Na6 2. b3 Nh6 3. f3 f5 4. d4 Ng8 5. Bf4 Nf6 6. Bxc7 Ng8 — a typical tabiya for this line.
+Position (FEN): r2qkbnr/pb2pppp/npp3P1/8/1PP4P/P2p4/3PPP2/RNBQKBNR w KQkq - 0 8. White to move.
+8. c5 is the main line, while 8... Qa4 is a sideline.
+The opening continued 1. g4 d5 2. g5 d4 3. h4 b6 4. a3 Na6 5. b4 d3 6. c4 Bb7 and the position stayed balanced.
+Position (FEN): rnbq1k1r/pppp4/3bp2p/1N3pp1/2Q1n3/1PP3P1/P2PNP1P/1RB1KB1R b K - 1 11. Black to move.
+The candidate moves are Nf6, b6 and Ke8.
+1. g3 Na6 2. b3 e6 3. e4 Bd6 4. c3 f5 5. Na3 Kf8 6. Rb1 g5 — a typical tabiya for this line.
+Given the FEN rnbqkbr1/pppp1ppp/4pn2/8/2B1P3/8/PPPP1PPP/RNBQ1KNR b q - 1 4 the engine evaluates the position as roughly equal.
+In UCI notation that is d8e7; the promotion g2g1b would be winning.
+1. e4 Nf6 2. Bd3 Rg8 3. Kf1 e6 4. Bc4 — a typical tabiya for this line.
+Position (FEN): rnbqkbnr/1pppppp1/p7/7p/4P2P/N7/PPPP1PP1/R1BQKBNR w KQkq - 0 4. White to move.
+The candidate moves are Bc4, d3 and Qxh5.
+Game score: 1. Na3 h6 2. h4 h5 3. e4 a6
+The report must be printed on a4 paper size, double sided.
+We start from rnbqkbnr/1pppp1pp/p7/5p2/4P3/5N1P/PPPP1PP1/RNBQKB1R b KQkq - 0 3, where Black has the initiative.
+In UCI notation that is h7h5; the promotion b7b8r would be winning.
+Game score: 1. h3 a6 2. Nf3 f5 3. e4
+She said we should be there by noon.
+We start from r1bqkbnr/p1ppp1pp/np3p2/8/P7/5N2/1PPPPPPP/RNBQKB1R b Kkq - 1 4, where Black has the initiative.
+The candidate moves are f5, e6 and Nh6.
+Game score: 1. Nf3 f6 2. a4 Na6 3. Ra2 b6 4. Ra1
+Given the FEN rnq1kbr1/1p2pppp/p2p1n2/2p2b2/4P3/NPP2Q1N/P2P1PPP/R1B1KB1R w KQq - 0 8 the engine evaluates the position as roughly equal.
+8. Be2 is the main line, while 8... Qd1 is a sideline.
+1. e4 c5 2. Qe2 Nf6 3. Na3 Rg8 4. Nh3 d6 5. c3 Bf5 6. Qf3 Qc8 — a typical tabiya for this line.
+Given the FEN rnb1kb1r/pp1pp1pp/6q1/2p2pn1/Q5PP/P1P2P1R/RP1PP3/1NBK1BN1 b kq - 2 10 the engine evaluates the position as roughly equal.
+Instead of Rg8, b6 wins material on the spot.
+Game score: 1. a3 f5 2. g4 c6 3. c3 Nh6 4. h3 Nf7 5. Ra2 Ng5 6. h4 c5
+We start from 2b1kb1r/rppp1ppp/8/p3pn2/1n3N2/7N/PPPBPPPP/R2QKBR1 b Qk - 6 10, where Black has the initiative.
+After g5 the threat of Ke7 is hard to meet.
+The opening continued 1. Nc3 Nc6 2. Nh3 e5 3. Ne4 Nb4 4. Rg1 Qg5 5. Nc5 a5 6. Nd3 Qxd2+ and the position stayed balanced.
+Position (FEN): r1bqk1nr/2p3pp/1pn2p2/p2pp3/1b4P1/PP5P/2PPPP1R/RNBQKBN1 w Qkq - 0 8. White to move.
+In UCI notation that is b1c3; the promotion b7b8r would be winning.
+1. h3 d5 2. b3 f6 3. Rh2 b6 4. a3 e5 5. Nf3 Nc6 6. Ng1 Bb4 — a typical tabiya for this line.
+Be careful when you print this on a4 paper size.
+We start from 1nbqkbn1/1p1p2p1/r1p4r/pQ2p2p/1PP1P2P/P4p2/3P1PP1/RNB1KBNR w KQ - 1 12, where White has the initiative.
+After Ne2 the threat of Bd3 is hard to meet.
+The opening continued 1. c4 f5 2. Qa4 Nc6 3. Qb5 f4 4. a3 Nb8 5. e4 h5 6. Qa6 f3 and the position stayed balanced.
+Position (FEN): rnbqkbn1/3pp2r/pp5B/P5p1/1Q1P4/6p1/R1P1PP1P/1N2KBNR w Kq - 0 11. White to move.
+Black blundered with Qc3; Qb3 would have held the balance.
+Game score: 1. a4 h6 2. d4 f5 3. Bg5 a6 4. Ra2 c5 5. b4 cxb4 6. Bxh6 Rh7
+Given the FEN r1Qqkbn1/p3p2r/n6p/1ppp2p1/PP1PPp2/N7/2P2PPP/R1B1K1NR b KQq - 1 10 the engine evaluates the position as roughly equal.
+Instead of dxe4, bxa4 wins material on the spot.
+Game score: 1. a3 h6 2. e4 f5 3. a4 c5 4. Qf3 f4 5. Ba6 Nxa6 6. b4 d5
+Position (FEN): rnbqkb1r/2pppp1p/1p5n/p5p1/1P1P4/P1N4P/2P1PPP1/R1BQKBNR w KQkq - 1 6. White to move.
+Black blundered with a4; Nd5 would have held the balance.
+The opening continued 1. Nc3 g6 2. d4 b6 3. b4 g5 4. a3 a5 5. h3 Nh6 and the position stayed balanced.
+We start from 1nqk1b1r/1ppb2Bp/3pp2n/r4p2/P6N/p3P1P1/2PP1P1P/R2QKB1R b KQ - 4 12, where Black has the initiative.
+After Rg8 the threat of a2 is hard to meet.
+The opening continued 1. b4 a5 2. Ba3 d6 3. Bb2 Nh6 4. a4 axb4 5. Bxg7 e6 6. Na3 bxa3 and the position stayed balanced.
+Beds, bedding and bedside tables are all on sale.
+Position (FEN): 1nbq2nr/1pp1k2p/r3p1pb/3p1p2/Pp2P3/N2P3N/2P1QPPP/R1B1KBR1 b Q - 1 11. Black to move.
+Best move: g5 (engine line g5 fxe4 Rd6).
+1. a4 d5 2. e4 a6 3. d3 g6 4. Nh3 a5 5. Rg1 Bh6 6. Ng5 f5 — a typical tabiya for this line.
+Position (FEN): r2qkb1r/p1p2ppp/1p1pp2n/4n3/P3bP2/2P4N/1PQPPKPP/RNB2BR1 b kq - 3 9. Black to move.
+Instead of Be7, Qg5 wins material on the spot.
+Game score: 1. a4 b6 2. f4 d6 3. c3 Nd7 4. Ra2 Ne5 5. Kf2 Bf5 6. Nh3 Nh6
+Be careful when you print this on a4 paper size.
+Position (FEN): rnbqkb1r/pp1pp3/5ppn/1Bp4p/P3P3/6P1/1PPP1P1P/RNBQK1NR w KQkq - 0 6. White to move.
+The candidate moves are Qg4, g4 and b4.
+The opening continued 1. e4 g6 2. Ba6 h5 3. Bb5 Nh6 4. g3 c5 5. a4 f6 and the position stayed balanced.
+Given the FEN r1b1kbnr/ppp2pp1/n2ppq1p/8/2P5/2Q4P/PP1PPPP1/RNB1KBNR b KQkq - 5 6 the engine evaluates the position as roughly equal.
+Instead of Kd8, g5 wins material on the spot.
+The opening continued 1. h3 e6 2. c4 h6 3. Qc2 d6 4. Qg6 Qf6 5. Qc2 Na6 6. Qc3 and the position stayed balanced.
+We start from rn1qk2r/pp3pp1/2pb2bn/3pp3/4P1pP/PP6/NBPP1PB1/RNQ1K2R w KQkq - 0 12, where White has the initiative.
+After Qd1 the threat of f4 is hard to meet.
+Game score: 1. e4 d5 2. Ne2 h5 3. h4 Bf5 4. g4 Qd6 5. a3 e5 6. Nec3 Qd8
+Given the FEN r1bqk2r/pppppnbp/n7/8/1P1P1pp1/4N1PP/PBP1PP2/R2QKBNR w Kkq - 2 11 the engine evaluates the position as roughly equal.
+Instead of Ba3, Rb1 wins material on the spot.
+The opening continued 1. Nc3 g5 2. Nd5 Bg7 3. d4 Na6 4. b4 Bf6 5. h3 Nh6 6. Bb2 Bg7 and the position stayed balanced.
+Position (FEN): rnbqkbnr/pp1pp2p/5p2/1Np3p1/7P/2P5/PP1PPPP1/R1BQKBNR b KQkq - 1 4. Black to move.
+Instead of c4, g4 wins material on the spot.
+Game score: 1. h4 f6 2. c3 c5 3. Na3 g5 4. Nb5
+We start from rn1qkb2/1b1pn2r/p1p4p/4ppp1/Pp2N3/2PPPP1P/1PQ3PR/R1BK1BN1 w q - 2 12, where White has the initiative.
+The candidate moves are Ng3, Qf2 and Qb3.
+The opening continued 1. c3 h6 2. d3 e5 3. Nd2 Rh7 4. h3 Ne7 5. f3 a6 6. a4 g5 and the position stayed balanced.
+Position (FEN): rnbqk1nr/1ppp1pp1/8/p1b1p2p/1P4P1/2P1P3/P2P1P1P/RNBQKBNR w KQkq - 1 5. White to move.
+After Ba3 the threat of e4 is hard to meet.
+1. e3 h5 2. g4 e5 3. c3 a5 4. b4 Bc5 — a typical tabiya for this line.
+Position (FEN): 1r2kbr1/pbpp1ppp/4pP2/1p2n1N1/1P1P3P/5q2/P1PKP3/RNBQ1B1R b - - 0 12. Black to move.
+Best move: Nd3 (engine line Nd3 Qxe2+ a5).
+Game score: 1. b3 e6 2. g3 Qh4 3. g4 Nf6 4. g5 Nc6 5. Nh3 Rb8 6. b4 Rg8
+Position (FEN): r2qk2r/1p1b2bp/1n2ppp1/p1pp4/6P1/NP1PBP1N/P1PKP2P/R3QB1R w kq - 0 13. White to move.
+Best move: Bg5 (engine line Bg5 Nc4 Qd1).
+The opening continued 1. d3 c5 2. b3 d6 3. Bb2 Nd7 4. g4 Ngf6 5. Kd2 e6 6. f3 Nb6 and the position stayed balanced.
+Given the FEN 1nbq1bnr/rpp3pp/p3pk2/3p1p2/PP6/7P/2PPPPPR/RNBQKBN1 w Q - 1 8 the engine evaluates the position as roughly equal.
+In UCI notation that is b1a3; the promotion b7b8r would be winning.
+Game score: 1. b3 f5 2. Nc3 a6 3. h3 Ra7 4. Nb1 d5 5. Rh2 Kf7 6. a4 e6
+Given the FEN rnbqkbnr/pp1ppp2/6pp/2p5/4N3/1P6/P1PPPPPP/R1BQKBNR w KQkq - 0 4 the engine evaluates the position as roughly equal.
+The candidate moves are Nc3, a4 and Nxc5.
+Game score: 1. Nc3 h6 2. b3 g6 3. Ne4 c5
+We start from rnbqk1n1/1pp2ppr/3pp3/p6p/4BP1b/3PP1PN/PPPB3P/RN1QK2R w KQq - 0 9, where White has the initiative.
+The candidate moves are Bc1, Bc6+ and c4.
+1. Nh3 h6 2. f4 e6 3. d3 h5 4. g3 d6 5. Bg2 Be7 6. Bd2 Rh7 — a typical tabiya for this line.
+We start from rnbqk1nr/p2ppp2/2p2bp1/1pP4p/6P1/4PP1B/PP1P1K1P/RNBQ2NR w kq - 1 8, where White has the initiative.
+In UCI notation that is e3e4; the promotion h2h1n would be winning.
+1. g4 g6 2. c4 b6 3. Bh3 c6 4. f3 h5 5. c5 Bg7 6. Kf2 b5 — a typical tabiya for this line.
+A4 paper size is the European default; Bed linen is extra.
+Given the FEN rn1qk1nr/pbp2p1p/4p2b/1p4pQ/1PpP1P2/2N1P2P/PB4P1/R3KBNR b KQ - 0 10 the engine evaluates the position as roughly equal.
+In UCI notation that is b7g2; the promotion a7a8q would be winning.
+Game score: 1. b4 d5 2. c4 Kd7 3. Ba3 dxc4 4. Bb2 Ke8 5. d4 b5 6. e3 g5
+Given the FEN r1bqkbr1/ppp1pppp/7n/3p4/P1n4P/1P3P2/R1PPPKP1/1NBQ1BNR b q - 0 7 the engine evaluates the position as roughly equal.
+Best move: Qd7 (engine line Qd7 Bf5 Na5).
+Game score: 1. a3 Nh6 2. f3 d5 3. Ra2 Nd7 4. a4 Nb6 5. Kf2 Rg8 6. b3 Nc4
+Be aware that the a4 format is not supported.
+Position (FEN): 1rbqkb1r/p1p2p1p/2np3n/1p2p1N1/QPP1P3/B7/P2P1PPP/RN2KB1R w KQk - 1 11. White to move.
+Best move: cxb5 (engine line cxb5 Nh3 Qa6).
+The opening continued 1. b4 Nh6 2. c3 Nc6 3. Nf3 b5 4. Ng1 e6 5. c4 Rb8 6. e4 Ra8 and the position stayed balanced.
+Position (FEN): 1nb1kbnr/rp2p1p1/1q5p/3p1p1P/pPp1P3/3N4/P1PP1PP1/RNBQKBR1 b Qk - 3 10. Black to move.
+Instead of Nd7, Qd6 wins material on the spot.
+The opening continued 1. h4 a5 2. h5 c5 3. b4 Ra7 4. Nf3 c4 5. Rg1 h6 6. Ne5 d5 and the position stayed balanced.
+We start from rnbq1bnr/2pppk2/pp3p1p/6p1/4P1Q1/2N5/PPPP1PPP/R1B1K1NR w KQ - 0 9, where White has the initiative.
+Best move: Nd5 (engine line Nd5 Ke2 f4).
+The opening continued 1. e4 Nc6 2. Be2 f6 3. Bc4 a6 4. Be6 h6 5. Nc3 b6 6. Bd5 g5 and the position stayed balanced.
+Given the FEN r3kb1r/pbqp3p/np2pp1n/2p3p1/4P1PP/PP1P1P1N/1BP5/RN1QKB1R w KQkq - 5 12 the engine evaluates the position as roughly equal.
+Instead of Bg2, Kd2 wins material on the spot.
+1. h4 Na6 2. f3 b6 3. b3 c5 4. a3 f6 5. g4 e6 6. Nh3 Nh6 — a typical tabiya for this line.
+Given the FEN rnbqkb1r/4pp1p/2pp1np1/pp6/1P2P2P/B4N2/P1PP1PPR/RN1QKB2 b Qkq - 0 8 the engine evaluates the position as roughly equal.
+Best move: axb4 (engine line axb4 Qc7 Be6).
+The opening continued 1. h4 a6 2. Nf3 c6 3. Nc3 b5 4. b4 g6 5. Nb1 a5 6. Rh2 Nf6 and the position stayed balanced.
+Position (FEN): rnb1kbnr/ppp2pp1/4pq1p/3p4/2P4P/1P6/P2PPPP1/RNBQKBNR w KQkq - 1 7. White to move.
+After cxd5 the threat of Na3 is hard to meet.
+1. Nh3 h6 2. Ng1 d6 3. b3 d5 4. h4 e6 5. c3 Qg5 6. c4 Qf6 — a typical tabiya for this line.
+We start from rn2kb1r/p3pppp/1ppp4/5b2/4n1BP/B1N4N/P1PP1PP1/R2QK2R w kq - 0 10, where White has the initiative.
+The candidate moves are d3, Bb4 and h5.
+1. h4 c6 2. Nc3 Qb6 3. e4 Qxb2 4. Be2 Qa3 5. Bxa3 d6 6. Kf1 Bf5 — a typical tabiya for this line.
+Position (FEN): r1bqkb1r/p2ppppp/np3n2/2p5/3P4/4PP2/PPP3PP/RNBQKBNR w KQkq - 1 5. White to move.
+Black blundered with Qd3; c4 would have held the balance.
+1. e3 Nf6 2. f3 c5 3. d3 b6 4. d4 Na6 — a typical tabiya for this line.
+We start from rn2k1r1/p1pqbppp/1p2pn2/3p4/1Pb4P/N2P3R/PBP1PPP1/R2QKBN1 w Qq - 3 12, where White has the initiative.
+Instead of Qb1, Kd2 wins material on the spot.
+1. h4 Na6 2. Na3 b6 3. Rh3 Nb8 4. Rh1 Nf6 5. d3 Ba6 6. Bf4 Bc4 — a typical tabiya for this line.
+We start from rnbqkbnr/pppp1pp1/8/4p2p/6P1/N6P/PPPPPP2/R1BQKBNR b KQkq - 0 3, where Black has the initiative.
+The candidate moves are Na6, Rh7 and c6.
+The opening continued 1. g4 h5 2. Na3 e5 3. h3 and the position stayed balanced.
+Position (FEN): rnbqk1nr/pp1p1p1p/2p1p1p1/8/2B1PP2/2Q5/PP1P2PP/RNB1K1NR b KQkq - 0 6. Black to move.
+Black blundered with d5; c5 would have held the balance.
+1. c3 c6 2. e4 e6 3. Bc4 Bb4 4. Qc2 Bxc3 5. f4 g6 6. Qxc3 — a typical tabiya for this line.
+Given the FEN rnbqk1nr/ppp1p2p/7b/3pPpp1/8/2NP1P2/PPP3PP/R1BQKBNR w KQkq f6 0 8 the engine evaluates the position as roughly equal.
+Best move: Qe2 (engine line Qe2 Bd2 h3).
+The opening continued 1. Na3 g6 2. d3 Nc6 3. e4 Nb8 4. f3 g5 5. Nb5 Bh6 6. e5 d5 and the position stayed balanced.
+Given the FEN r1bqkb1r/pppp1pp1/2n4p/4p3/4n1P1/3BP2N/PPPPQP1P/RNB1K2R b KQkq - 3 6 the engine evaluates the position as roughly equal.
+Instead of Qh4, Rg8 wins material on the spot.
+1. Nh3 Nf6 2. e3 e5 3. Ba6 Nc6 4. g4 h6 5. Bd3 Ne4 6. Qe2 — a typical tabiya for this line.
+We start from 1rb1kb1r/pBqp3p/2p1p1pn/5P2/5P2/2N4N/PPPP2PP/R1BQK2R w KQ - 1 11, where White has the initiative.
+Best move: Rg1 (engine line Rg1 a3 Qg4).
+The opening continued 1. e4 f5 2. f3 Nh6 3. exf5 e6 4. Nc3 Na6 5. Nh3 c6 6. Nf4 Rg8 and the position stayed balanced.
+We start from rnbqkbnr/2pp1p1p/pp4p1/4p3/N4P2/8/PPPPP1PP/1RBQKBNR w Kkq - 0 5, where White has the initiative.
+The candidate moves are fxe5, Kf2 and Nh3.
+Game score: 1. Nc3 g6 2. Na4 e5 3. Rb1 b6 4. f4 a6
+Position (FEN): rnbqkbnr/1p1ppppp/8/p1p5/8/6PP/PPPPPPB1/RNBQK1NR b KQkq - 1 3. Black to move.
+In UCI notation that is c5c4; the promotion h2h1n would be winning.
+Game score: 1. g3 a5 2. h3 c5 3. Bg2
+Bedrock is the layer beneath the soil.
+Position (FEN): 1nb1k1nr/r1pp1ppp/8/1p2Pq2/p7/b2PP2N/1PPNQ1PP/R1B1KB1R b KQk - 0 9. Black to move.
+9. Be7 is the main line, while 9... Bb7 is a sideline.
+Game score: 1. f3 a5 2. d3 Ra7 3. e3 b5 4. a3 a4 5. Qe2 e5 6. Nd2 Qg5
+We start from rn1qkbnr/p1pppppp/bp6/8/3P4/1P4P1/P1P1PP1P/RNBQKBNR b KQkq - 0 3, where Black has the initiative.
+3. h6 is the main line, while 3... d5 is a sideline.
+The opening continued 1. g3 b6 2. d4 Ba6 3. b3 and the position stayed balanced.
+Given the FEN rn2kbnr/pp1bppp1/2qp4/2p4p/4PNPP/1PN1Q3/P1PP1P2/R1BK1B1R b kq - 0 10 the engine evaluates the position as roughly equal.
+Best move: Bxg4+ (engine line Bxg4+ Qd5 Qa6).
+1. b3 h6 2. Nc3 d6 3. Nh3 Be6 4. Nf4 c5 5. e4 Bf5 6. Qe2 h5 — a typical tabiya for this line.
+Position (FEN): rn2kbnr/1p2pp2/p6p/2pp1bp1/q1PP4/PP3PP1/1R2P2P/2BQKBNR b Kkq - 0 10. Black to move.
+The candidate moves are Bg4, f6 and Qxc4.
+The opening continued 1. Nc3 c6 2. b3 a6 3. Rb1 d5 4. a3 h6 5. g3 c5 6. Na4 Qd7 and the position stayed balanced.
+We start from rn1qkbnr/pbpppppp/8/1p6/8/2P5/PPQPPPPP/RNB1KBNR w KQkq - 2 3, where White has the initiative.
+The candidate moves are e3, h4 and a3.
+The opening continued 1. c3 b5 2. Qc2 Bb7 and the position stayed balanced.
+Beds, bedding and bedside tables are all on sale.
+Given the FEN r1b1kbnr/2ppqppp/np2p3/p7/3P1P1P/2P4R/PP1QP1P1/RNB1KBN1 b Qkq - 1 6 the engine evaluates the position as roughly equal.
+Black blundered with Nh6; Nb8 would have held the balance.
+1. h4 a5 2. f4 Na6 3. d4 e6 4. c3 Qe7 5. Qd2 b6 6. Rh3 — a typical tabiya for this line.
+Given the FEN r1b1k2r/pp1p3p/2n2ppb/2p1pn2/P2N1PP1/2P1P3/3P3P/R1B1KBNR w KQkq - 2 13 the engine evaluates the position as roughly equal.
+In UCI notation that is d4c6; the promotion a7a8q would be winning.
+The opening continued 1. f3 e5 2. Na3 Ne7 3. b4 c5 4. Nb5 Qa5 5. e3 g6 6. a4 Qxb4 and the position stayed balanced.
+Be brief, be bright, be gone.
+We start from r2qkBnr/1pp1p2p/2npb3/p4pp1/P2P4/5N2/1PPQPPPP/RN2KB1R b KQkq - 0 7, where Black has the initiative.
+The candidate moves are Bd7, Kf7 and Na7.
+Game score: 1. d4 Nc6 2. Be3 d6 3. Nf3 Be6 4. Bh6 f5 5. Qd2 a5 6. a4 g5
+Position (FEN): rnbq1rk1/ppp1bppp/3p3n/4P3/Q1P5/4PN2/PP1P2PP/RNB1KB1R b KQ - 4 6. Black to move.
+The candidate moves are Bf5, Bh4+ and Na6.
+Game score: 1. f4 e5 2. fxe5 Nh6 3. c4 d6 4. e3 Be7 5. Nf3 O-O 6. Qa4
+We start from 2bq2nr/rppkp1b1/2np2p1/p2B1p1p/5P2/1PN3PN/PBPPP2P/R2QK1R1 w Q - 2 13, where White has the initiative.
+After Rh1 the threat of Rb1 is hard to meet.
+The opening continued 1. Nc3 a6 2. Nh3 Ra7 3. f3 a5 4. g3 Ra8 5. b3 f5 6. f4 g6 and the position stayed balanced.
+We start from r1bqkb1r/p1ppp1pp/2n5/1p4p1/4PPnP/2PP4/PP6/RNBQKBNR b KQkq - 0 7, where Black has the initiative.
+After e6 the threat of Nge5 is hard to meet.
+Game score: 1. g4 Nf6 2. g5 Ng4 3. e4 b5 4. d3 Nc6 5. h4 f6 6. f4 fxg5
+Given the FEN rnbqkbnr/1p1ppppp/8/p1p5/1P6/2P3P1/P2PPP1P/RNBQKBNR w KQkq - 0 4 the engine evaluates the position as roughly equal.
+4. Bb2 is the main line, while 4... f3 is a sideline.
+The opening continued 1. b4 a6 2. g3 c5 3. c3 a5 and the position stayed balanced.
+We start from r1bqkbnr/ppppppp1/n7/7p/Q1P5/8/PP1PPPPP/RNB1KBNR w KQkq - 2 3, where White has the initiative.
+In UCI notation that is b1a3; the promotion b7b8r would be winning.
+Game score: 1. c4 h5 2. Qa4 Na6
+We start from r2q1b1r/3p1ppp/b1pk1n2/pp5Q/1P1n4/P2PP1PN/2P2P1P/RN2KB1R w KQ - 1 12, where White has the initiative.
+Instead of c4, Nf4 wins material on the spot.
+Game score: 1. b3 b5 2. Ba3 Nc6 3. Nh3 Nd4 4. e3 Ne6 5. Qe2 a5 6. d3 Nf6
+Given the FEN rnbqk2r/1pppn1b1/p5pp/4ppP1/8/PPP4B/1B1PPP1P/RNQ1K1NR b kq - 2 10 the engine evaluates the position as roughly equal.
+The candidate moves are O-O, Rg8 and Kf8.
+Game score: 1. a3 a6 2. b3 f5 3. g4 Nh6 4. Bh3 g6 5. g5 Ng8 6. Kf1 e5
+Given the FEN r1bqkbnr/ppp3p1/n2N4/3ppp1p/1P6/5PP1/P1PPP2P/R1BQKBNR b KQkq - 1 6 the engine evaluates the position as roughly equal.
+In UCI notation that is c7d6; the promotion g2g1b would be winning.
+Game score: 1. b4 Na6 2. g3 d5 3. Nc3 f5 4. Nb5 e5 5. f3 h5 6. Nd6+
+Position (FEN): r1b1kbnr/pppqpp1p/2np4/6p1/3PP3/3K4/PPP2PPP/RNBQ1BNR w kq - 3 5. White to move.
+After c4 the threat of a3 is hard to meet.
+Game score: 1. e4 g5 2. Ke2 d6 3. d4 Qd7 4. Kd3 Nc6
+Given the FEN r1bqkbnr/p2ppppp/n1p5/4N3/1p6/1PNP4/P1P1PPPP/R1BQKB1R b KQkq - 0 5 the engine evaluates the position as roughly equal.
+Best move: Nb8 (engine line Nb8 Qc7 g6).
+1. Nf3 c6 2. Nc3 b5 3. d3 Na6 4. Ne5 b4 5. b3 — a typical tabiya for this line.
+Given the FEN rnbqkb1r/ppp1pp1p/3p3n/6p1/4B1P1/8/PPPPPP1P/RNBQK1NR w KQkq - 2 4 the engine evaluates the position as roughly equal.
+The candidate moves are f4, Bf3 and c4.
+The opening continued 1. g4 d6 2. Bg2 g5 3. Be4 Nh6 and the position stayed balanced.
+The bed was already made when we arrived.
+Given the FEN r1b1kb1r/pp2p1pp/2n4n/4N3/2pp4/NP2P3/P1P1KPPP/R1B2B1R b - - 3 11 the engine evaluates the position as roughly equal.
+Instead of Nf5, g5 wins material on the spot.
+Game score: 1. Nf3 c5 2. Na3 Qa5 3. e3 Qxd2+ 4. Nxd2 c4 5. Qf3 d5 6. b3 d4
+We start from r1bqk1nr/p1pp1ppp/np6/8/1b1Np2P/P1P5/1P1PPPP1/RNBQKB1R w KQkq - 0 6, where White has the initiative.
+In UCI notation that is f2f4; the promotion h2h1n would be winning.
+1. Nf3 e5 2. Nd4 b6 3. a3 Bb4 4. c3 Na6 5. h4 e4 — a typical tabiya for this line.
+Position (FEN): r1bqkbn1/ppppp1p1/7r/2n2p1p/5PP1/4P2N/PPPP3P/RNBQKB1R w KQq - 1 6. White to move.
+Instead of Rg1, Kf2 wins material on the spot.
+The opening continued 1. g3 Na6 2. Nh3 h5 3. f4 Nc5 4. e3 f5 5. g4 Rh6 and the position stayed balanced.
+Position (FEN): rnbqkbnr/1ppp1pp1/p3p2p/8/3P4/2N1B2P/PPP1PPP1/R2QKBNR b KQkq - 1 4. Black to move.
+After f6 the threat of c5 is hard to meet.
+The opening continued 1. h3 h6 2. d4 a6 3. Be3 e6 4. Nc3 and the position stayed balanced.
+Given the FEN rnbqk1nr/pp1p2b1/2p1p1p1/7p/3P2pP/1P4P1/P1PKPP2/RNBQ1B1R w kq - 0 9 the engine evaluates the position as roughly equal.
+Black blundered with a3; Qe1 would have held the balance.
+Game score: 1. g3 c6 2. Nf3 h6 3. h4 g5 4. Ne5 g4 5. Ng6 fxg6 6. d4 Bg7
+We start from rnbqkbnr/p2pppp1/7p/1pp5/2B1P3/P7/RPPP1PPP/1NBQK1NR b Kkq - 5 6, where Black has the initiative.
+Best move: Qa5 (engine line Qa5 Qb6 a5).
+Game score: 1. a3 c5 2. Ra2 b5 3. e4 h6 4. Nc3 Ba6 5. Bc4 Bc8 6. Nb1
+Position (FEN): r1bqkbnr/ppp1pp1p/2n5/6p1/3p2PP/1P1P4/PBP1PPB1/RN1QK1NR b KQkq - 1 8. Black to move.
+Best move: Nb4 (engine line Nb4 Bf5 Nh6).
+1. d3 Nc6 2. Be3 Na5 3. Bc1 g6 4. g4 g5 5. b3 Nc6 6. Bg2 d5 — a typical tabiya for this line.
+Position (FEN): 1nbqkbnr/rppppppp/p7/8/8/2P4P/PP1PPPP1/RNBQKBNR w KQk - 1 3. White to move.
+The candidate moves are b3, e4 and g3.
+The opening continued 1. h3 a6 2. c3 Ra7 and the position stayed balanced.
+We start from r1b1kbnr/p3p1p1/7p/q1n2p2/pPppP1P1/R4B1N/1BPPKP1P/1N1Q3R b kq - 1 12, where Black has the initiative.
+Black blundered with Nf6; g5 would have held the balance.
+The opening continued 1. g4 c5 2. b4 c4 3. a4 Qa5 4. Bg2 d5 5. Ra3 Na6 6. Rg3 d4 and the position stayed balanced.
+Position (FEN): r1b1kbnr/pp3ppp/2np4/2p1q3/3P4/2N5/PPP1PPPP/RQ2KBNR w KQkq - 2 6. White to move.
+The candidate moves are Kd2, a3 and a4.
+Game score: 1. d4 c5 2. Bg5 d6 3. Bxe7 Nc6 4. Nc3 Qxe7 5. Qb1 Qe5
+Given the FEN 1nbqkb1r/3pppp1/rp6/p1pn2BP/3P4/N7/PPP1PP1P/R2QKBNR w KQk - 0 8 the engine evaluates the position as roughly equal.
+Best move: b4 (engine line b4 Qb1 Nc4).
+The opening continued 1. g3 a5 2. d4 b6 3. g4 Ra6 4. Be3 h5 5. gxh5 Nf6 6. Bg5 Nd5 and the position stayed balanced.
+We start from rnbqkb1r/1p4pp/4pp1n/1Pp5/p2p3P/4PQP1/P1PPNP2/RNBK1B1R w kq - 0 13, where White has the initiative.
+Instead of Qf4, Bh3 wins material on the spot.
+The opening continued 1. e3 a5 2. h4 d6 3. Qf3 c6 4. Kd1 Nf6 5. Nc3 Ng8 6. Nb1 c5 and the position stayed balanced.
+We start from 1nbq1knr/2pppp1p/rp5b/p5P1/8/2PP1N2/PP1QPPP1/RNBK1B1R w - - 1 8, where White has the initiative.
+8. Ng1 is the main line, while 8... Qc2 is a sideline.
+The opening continued 1. c3 b6 2. d3 g5 3. Qd2 Bh6 4. Nf3 Kf8 5. h4 a5 6. Kd1 Ra7 and the position stayed balanced.
+Given the FEN r1bqkb1r/ppppp2p/n5p1/5P1n/2B5/8/PPPP1PPP/RNBQK1NR b KQkq - 0 8 the engine evaluates the position as roughly equal.
+The candidate moves are Nf4, e6 and Bg7.
+The opening continued 1. Na3 g6 2. Nh3 f5 3. e4 Nf6 4. Be2 Ng4 5. Ng1 Nf6 6. Nb1 Na6 and the position stayed balanced.
+Given the FEN rnbqkb1r/ppppp2p/5n2/5pp1/1P5P/P7/2PPPPP1/RNBQKBNR w KQkq - 1 4 the engine evaluates the position as roughly equal.
+The candidate moves are Nh3, h5 and Nf3.
+1. h4 g5 2. a3 f5 3. b4 Nf6 — a typical tabiya for this line.
+Given the FEN rnb2q1r/pp3k1p/2pppppn/4b3/1P2P1QP/P6B/2PP1P2/RNB1K1NR w K - 2 13 the engine evaluates the position as roughly equal.
+Black blundered with c4; Kf1 would have held the balance.
+1. a3 c6 2. b4 f6 3. h4 e6 4. g3 Bd6 5. Ra2 Ke7 6. e4 Qf8 — a typical tabiya for this line.
+Given the FEN rnb1kbnr/ppqppppp/8/8/2P1P3/7P/PPP2PP1/RNBQKBNR b KQkq - 0 4 the engine evaluates the position as roughly equal.
+Best move: g6 (engine line g6 b6 Qa5+).
+The opening continued 1. h3 c5 2. d3 c4 3. dxc4 Qc7 4. e4 and the position stayed balanced.
+We start from rnbqkbnr/ppp2p2/3pp3/6pp/8/P1NPP2N/1PP2PPP/R1BQKB1R b KQkq - 1 5, where Black has the initiative.
+Instead of Be7, Kd7 wins material on the spot.
+Game score: 1. d3 h5 2. Nc3 g5 3. a3 e6 4. e3 d6 5. Nh3
+We start from rnbqk1nr/1pppppb1/6pp/p7/P2P2P1/7P/RPP1PP2/1NBQKBNR b Kkq - 0 5, where Black has the initiative.
+The candidate moves are Bf8, e6 and b6.
+The opening continued 1. a4 a5 2. h3 h6 3. Ra2 g6 4. g4 Bg7 5. d4 and the position stayed balanced.
+Given the FEN 1nbqkb1r/rpppp2p/5n2/p4pp1/Q1P5/3PP2N/PP3PPP/RNB1KBR1 b Qk - 0 6 the engine evaluates the position as roughly equal.
+6. Ng8 is the main line, while 6... Ng4 is a sideline.
+Game score: 1. Nh3 g5 2. c4 f5 3. Rg1 a5 4. e3 Ra7 5. Qa4 Nf6 6. d3
+Given the FEN rnbqkb1r/2pp2pp/p3pp1n/1pP3B1/P2P4/3Q4/1P2PPPP/RN2KBNR w KQkq - 0 7 the engine evaluates the position as roughly equal.
+After e3 the threat of Qe4 is hard to meet.
+Game score: 1. d4 b6 2. Qd3 a6 3. Bg5 b5 4. c4 Nh6 5. c5 f6 6. a4 e6
+Position (FEN): rnb1k2r/p2pnp2/1p1B4/q5pp/P3N3/1P3P2/2PPP1PP/2RQKBNR b Kkq - 0 12. Black to move.
+12. Rf8 is the main line, while 12... Kf8 is a sideline.
+1. b3 e5 2. a4 c5 3. Ba3 h5 4. Bxc5 g5 5. Bd6 e4 6. Bb4 Bd6 — a typical tabiya for this line.
+We start from rnbqkbnr/pppp2pp/8/4pp2/8/1P5N/P1PPPPPP/RNBQKB1R w KQkq - 0 3, where White has the initiative.
+3. d4 is the main line, while 3... f3 is a sideline.
+1. b3 f5 2. Nh3 e5 — a typical tabiya for this line.
+Given the FEN rnbqkbnr/pp1ppp1p/2p3p1/8/7P/P7/1PPPPPPR/RNBQKBN1 b Qkq - 1 3 the engine evaluates the position as roughly equal.
+Instead of b5, h5 wins material on the spot.
+Game score: 1. a3 c6 2. h4 g6 3. Rh2
+Position (FEN): rnbqk2r/pp1pbppp/2p4n/8/1PP1pN2/P4P2/3PP1PP/RNBQKB1R b KQkq - 0 6. Black to move.
+Black blundered with Qc7; Rg8 would have held the balance.
+Game score: 1. b4 c6 2. f3 e5 3. Nh3 e4 4. Nf4 Be7 5. a3 Nh6 6. c4
+Position (FEN): r1bq1rk1/p1p1bppp/1pn2n2/3pp3/3P1PP1/P1N4N/RPP1P2P/2BQKBR1 b - - 0 8. Black to move.
+After Nh5 the threat of Bf5 is hard to meet.
+Game score: 1. a3 e5 2. Nh3 Nf6 3. Rg1 Be7 4. f4 Nc6 5. Nc3 d5 6. Ra2 O-O
+Bedrock is the layer beneath the soil.
+Given the FEN rnbq1b1r/p1pppk1p/6pn/BpPP1p2/8/4PN2/PPQ2PPP/RN2KB1R w KQ - 1 12 the engine evaluates the position as roughly equal.
+In UCI notation that is b2b3; the promotion g2g1b would be winning.
+Game score: 1. d4 b5 2. c4 Nc6 3. Qc2 Bb7 4. Bd2 Nh6 5. Qd1 Nb8 6. d5 Qc8
+We start from r2qkbr1/p3pppp/3p3n/2p5/1nP2PbP/4K2R/RP1PP1P1/1NBQ1BN1 b q - 1 10, where Black has the initiative.
+In UCI notation that is g4c8; the promotion b7b8r would be winning.
+Game score: 1. a3 Nh6 2. c3 Rg8 3. f4 b5 4. h4 c5 5. Kf2 d6 6. Rh3 Bg4
+Position (FEN): rnb1kbnr/5ppp/ppp1pq2/3p4/3PPPP1/NPP5/P2B3P/R2QKBNR b KQkq - 0 10. Black to move.
+Instead of h6, Ra7 wins material on the spot.
+Game score: 1. Nf3 a6 2. Ng1 c6 3. d4 Nf6 4. c3 e6 5. Bd2 Ng8 6. e4 b6
+Position (FEN): rnbq1N1r/2p1pkpp/p7/1p3p2/1P2P3/2nB1Q2/P1PP1PPP/RNB1K2R b KQ - 0 9. Black to move.
+In UCI notation that is h7h5; the promotion a7a8q would be winning.
+Game score: 1. Nf3 f6 2. e3 f5 3. Ne5 Nf6 4. Qf3 a6 5. b4 Nd5 6. Bd3 b5
+Position (FEN): rnbqkbnr/pppp1p1p/4p3/6p1/1P1P4/P7/2P1PPPP/RNBQKBNR b KQkq - 0 3. Black to move.
+Best move: d5 (engine line d5 f6 a5).
+Game score: 1. b4 g5 2. d4 e6 3. a3
+We start from rnbqkb1r/pp2pppp/7n/2pp4/1P1P4/6PB/P1P1PP1P/RNBQK1NR b KQkq - 1 4, where Black has the initiative.
+Black blundered with e5; Bf5 would have held the balance.
+1. d4 d5 2. g3 Nh6 3. b4 c5 4. Bh3 — a typical tabiya for this line.
+Position (FEN): r1b1qbr1/4pk1p/pppp3n/nQ3pp1/1P2P3/3PB3/P1P1NPPP/RN1K1B1R w - - 0 13. White to move.
+Instead of Qa4, Nc1 wins material on the spot.
+Game score: 1. e3 f5 2. e4 Nc6 3. Ne2 b6 4. Ng1 Na5 5. Qg4 g5 6. Qe2 d6
+Position (FEN): 1nbqkbnr/1pppp2p/5pp1/p7/BrPP4/4P1PP/PP3P2/RNBQK1NR w KQk - 1 8. White to move.
+In UCI notation that is f2f4; the promotion a7a8q would be winning.
+Game score: 1. g3 a5 2. e3 Ra7 3. Bb5 Ra6 4. h3 f6 5. Ba4 Rb6 6. d4 g6
+The report must be printed on a4 paper size, double sided.
+We start from rnbqk1nr/pp1p2pp/2pb1p2/4p3/P1P5/R2P4/1P2PPPP/1NBQKBNR w Kkq - 1 5, where White has the initiative.
+In UCI notation that is a3a1; the promotion a7a8q would be winning.
+The opening continued 1. c4 f6 2. a4 c6 3. Ra3 e5 4. d3 Bd6 and the position stayed balanced.
+We start from rnbqkbnr/2p1pp2/pp6/6pp/1P1p1P1P/N1P3PR/P2PP1B1/R1BQK1N1 b Qkq - 0 8, where Black has the initiative.
+In UCI notation that is c8e6; the promotion b7b8r would be winning.
+1. g3 a6 2. h4 b6 3. Na3 h6 4. Bg2 h5 5. b4 g5 6. f4 d5 — a typical tabiya for this line.
+Position (FEN): r1bq1bnr/2p1pk1p/p1np1p2/Pp3Pp1/1P4PP/7B/2PPPK2/RNB1Q1NR w - - 1 13. White to move.
+After Na3 the threat of Kf1 is hard to meet.
+Game score: 1. g4 d6 2. a4 Na6 3. f4 g5 4. Kf2 f6 5. Qe1 Kf7 6. Kf3 Kg6
+Position (FEN): 1rbq1b1r/p1pnp2p/Bp1pk1pn/5p2/3PPB2/P1N4P/1PP2PP1/RN1Q1RK1 w - - 0 10. White to move.
+After Bc1 the threat of Nb5 is hard to meet.
+The opening continued 1. e4 f5 2. d4 d6 3. Ba6 Kd7 4. Ne2 Ke6 5. Bf4 Nd7 6. a3 Rb8 and the position stayed balanced.
+Position (FEN): r1bqkbnr/pppppppp/8/8/2PP4/3QP3/PP3PPP/RNB1KBNR b KQkq - 0 4. Black to move.
+Black blundered with h6; e6 would have held the balance.
+1. c4 Nc6 2. e3 Nb4 3. d4 Nd3+ 4. Qxd3 — a typical tabiya for this line.
+Given the FEN 2bqkbnr/r1pp1pp1/p1n3Q1/1p2p2p/4P3/P6N/RPPP1PPP/1NB1KB1R w Kk - 4 7 the engine evaluates the position as roughly equal.
+Instead of Qg5, Rg1 wins material on the spot.
+1. a3 b5 2. e4 a6 3. Nh3 e5 4. Ra2 h5 5. Qg4 Nc6 6. Qg6 Ra7 — a typical tabiya for this line.
+Given the FEN rnbqkbnr/p2ppppp/1p6/2p1N3/8/8/PPPPPPPP/RNBQKB1R w KQkq - 0 3 the engine evaluates the position as roughly equal.
+In UCI notation that is e5f3; the promotion h2h1n would be winning.
+Game score: 1. Nf3 c5 2. Ne5 b6
+Given the FEN rnb1kbnr/pQp1pp2/6q1/5Ppp/2Pp4/2N2N2/PP1PP1PP/R1B1KB1R b KQkq - 0 9 the engine evaluates the position as roughly equal.
+9. c5 is the main line, while 9... Qe6 is a sideline.
+Game score: 1. c4 g6 2. Qb3 d5 3. Nc3 g5 4. Qc2 Qd6 5. Qe4 Qa6 6. f4 d4
+Position (FEN): 1rbq1b1r/p1pk1pp1/B3p2p/1p6/Pn2pN2/2P2P2/1PQPK1PP/RNB4R w - - 1 12. White to move.
+12. Na3 is the main line, while 12... Nd5 is a sideline.
+Game score: 1. e4 Nf6 2. Nh3 Na6 3. Bd3 d5 4. a4 Kd7 5. Bxa6 Rb8 6. Kf1 dxe4
+Given the FEN r2q1bnr/p3pk2/nppP1pb1/6pp/2PN4/3B1P2/PP1P2PP/R1BQK1NR w KQ - 4 11 the engine evaluates the position as roughly equal.
+In UCI notation that is d3e2; the promotion g2g1b would be winning.
+1. e4 h5 2. Nc3 c6 3. Nb5 d6 4. e5 f6 5. exd6 Kf7 6. f3 b6 — a typical tabiya for this line.
+Given the FEN r1bqkbnr/p1pp1ppp/4p3/1p2n3/8/2P2P1N/PP1PP1PP/RNBQKBR1 w Qkq - 0 5 the engine evaluates the position as roughly equal.
+Best move: Qc2 (engine line Qc2 e3 g3).
+Game score: 1. Nh3 Nc6 2. f3 b5 3. c3 Ne5 4. Rg1 e6
+Given the FEN r1bqkbnr/ppp1pppp/n2p4/8/8/NP3N2/P1PPPPPP/R1BQKB1R b KQkq - 0 3 the engine evaluates the position as roughly equal.
+Best move: c6 (engine line c6 c5 Be6).
+The opening continued 1. Na3 Na6 2. Nf3 d6 3. b3 and the position stayed balanced.
+We start from rnbqkbnr/p1pp2p1/1p5p/4pp2/3P3P/PPP3P1/1B2PP2/RN1QKBNR b KQkq - 0 7, where Black has the initiative.
+Black blundered with Bb4; c5 would have held the balance.
+The opening continued 1. a3 f5 2. b3 h6 3. Bb2 Na6 4. g3 Nb8 5. c3 e5 6. d4 b6 and the position stayed balanced.
+Position (FEN): 1rbqkbnr/2p1pppp/ppnp4/8/1P2PP2/7N/P1PP2PP/RNBQKBR1 w Qk - 0 6. White to move.
+Instead of a4, Qh5 wins material on the spot.
+Game score: 1. f4 Nc6 2. e4 a6 3. Nh3 Rb8 4. Rg1 d6 5. b4 b6
+We start from r1b1k1nr/ppp4p/3qppp1/2bP2P1/1PPP4/3Q3P/PB3P2/RN2KBNR b KQkq - 0 12, where Black has the initiative.
+Instead of Qe5+, Qh2 wins material on the spot.
+The opening continued 1. d4 e6 2. b4 d5 3. Bb2 Nd7 4. h3 f6 5. Qd3 Ne7 6. g4 Ne5 and the position stayed balanced.
+Position (FEN): rnbqkbnr/1p1pppp1/p7/6Bp/2p4P/N2P4/PPPQPPP1/R3KBNR b KQkq - 0 5. Black to move.
+The candidate moves are d6, c3 and b6.
+The opening continued 1. Na3 c5 2. d3 a6 3. Bg5 h5 4. Qd2 c4 5. h4 and the position stayed balanced.
+We start from r1bqkbnr/pppppp1p/8/6p1/8/2N1PN2/PPQP1PPP/R1B1KB1R w KQkq - 0 5, where White has the initiative.
+5. Ne5 is the main line, while 5... Ne4 is a sideline.
+The opening continued 1. Nc3 Na6 2. e3 Nb4 3. Nf3 Nxc2+ 4. Qxc2 g5 and the position stayed balanced.
+Given the FEN rn1qkb1r/1ppbpp2/p2p1n2/6pp/4P3/1PPP4/P2N1P1P/R1BQKBNR b kq - 1 9 the engine evaluates the position as roughly equal.
+The candidate moves are e6, Rh6 and Qc8.
+The opening continued 1. g4 a6 2. c3 Nf6 3. b3 Nxg4 4. d3 Nf6 5. e3 d6 6. Ke2 h5 and the position stayed balanced.
+The report must be printed on a4 paper size, double sided.
+Given the FEN 1nb1kbnr/r1pqpp2/1p1p4/P5pp/P7/B6P/2PPPPP1/RN1QKBNR w KQk - 2 8 the engine evaluates the position as roughly equal.
+8. f4 is the main line, while 8... Bb4 is a sideline.
+1. b4 h5 2. a4 b6 3. Nc3 a5 4. bxa5 Ra7 5. h3 d6 6. Nb1 g5 — a typical tabiya for this line.
+Given the FEN rnbqkb1r/2ppp1pp/pN3p1n/1p6/1P6/2P5/P2PPPPP/R1BQKBNR b KQkq - 2 5 the engine evaluates the position as roughly equal.
+Instead of e6, g6 wins material on the spot.
+1. Nc3 b5 2. Nd5 f6 3. c3 a6 4. b4 Nh6 5. Nb6 — a typical tabiya for this line.
+Given the FEN r1b1kbnr/ppp1p1p1/3pqp1p/8/1n6/3PP1PP/PPP1QP2/RNB1KBNR w KQkq - 7 8 the engine evaluates the position as roughly equal.
+Best move: b3 (engine line b3 Kd2 Na3).
+1. g3 f6 2. e3 h6 3. h3 d6 4. d3 Nc6 5. Bd2 Nb4 6. Qe2 Qd7 — a typical tabiya for this line.
+We start from rnbq1knr/p3p2p/2p2ppb/1p1p4/3P1P2/4P3/PPP1N1PP/1RBQKBNR w K - 0 9, where White has the initiative.
+In UCI notation that is e2c3; the promotion a7a8q would be winning.
+Game score: 1. Nc3 g6 2. Nb1 c6 3. Nc3 f6 4. f4 Bh6 5. Rb1 b6 6. e3 b5
+We start from rnb1kb1r/pppqp2p/3p3n/1N3pp1/1PP3P1/7B/P2PPP1P/1RBQK1NR b Kkq - 3 7, where Black has the initiative.
+7. Rg8 is the main line, while 7... c5 is a sideline.
+The opening continued 1. c4 g6 2. b4 g5 3. Nc3 d6 4. Rb1 Nh6 5. g4 f5 6. Nb5 Qd7 and the position stayed balanced.
+Given the FEN rnbq1b1r/3ppkpp/ppp4n/1B3p2/2PP4/4P3/PP3PPP/RNBQK1NR w KQ - 1 7 the engine evaluates the position as roughly equal.
+7. Qh5+ is the main line, while 7... Qe2 is a sideline.
+1. d4 a6 2. e3 f5 3. Be2 c6 4. Bd3 b6 5. Bb5 Kf7 6. c4 Nh6 — a typical tabiya for this line.
+Given the FEN r1bqkbnr/p1pp1p2/n5pp/1p2p3/2P5/P4P1N/1P1PP1PP/RNBQ1BKR b kq - 0 6 the engine evaluates the position as roughly equal.
+Instead of Bxa3, Nf6 wins material on the spot.
+1. f3 b5 2. Kf2 Na6 3. Nh3 g6 4. a3 h6 5. Kg1 e5 6. c4 — a typical tabiya for this line.
+Position (FEN): 1n1qkb1r/1p1b2pp/2p2B1n/r2pp3/P2P4/N1P2N1P/P3PPPR/R2QKB2 b Q - 0 12. Black to move.
+The candidate moves are Nf7, Rxa4 and Ng4.
+1. h3 f6 2. Nf3 a5 3. b3 a4 4. Bb2 d5 5. Ng5 c6 6. Na3 Nh6 — a typical tabiya for this line.
+Given the FEN rnbqkb1r/pppp1ppp/7n/8/2PPp3/4P3/PP3PPP/RNBQKBNR w KQkq - 0 4 the engine evaluates the position as roughly equal.
+Instead of Be2, Qa4 wins material on the spot.
+Game score: 1. d4 Nh6 2. e3 e5 3. c4 e4
+Given the FEN rn2k1nr/pppq1ppp/8/3N1b2/4p2P/bPP5/P2PPPP1/R1BQKBNR w KQkq - 1 8 the engine evaluates the position as roughly equal.
+After Nf4 the threat of Ne3 is hard to meet.
+The opening continued 1. h4 e5 2. Nh3 d5 3. Ng1 Bf5 4. Nc3 e4 5. b3 Bd6 6. Nxd5 Qd7 and the position stayed balanced.
+Given the FEN rnbqkbn1/ppp1p2r/3p2p1/5p2/7p/1P1P3N/P1P1PPPP/RNBQKBR1 w Q - 2 9 the engine evaluates the position as roughly equal.
+Instead of Qd2, Na3 wins material on the spot.
+Game score: 1. Nh3 h5 2. d3 g6 3. Bd2 d6 4. b3 f5 5. Bc1 Kf7 6. Rg1 Ke8
+Position (FEN): rnbqk1n1/ppp2p1r/4p1p1/2b1p2p/7P/2P3PN/PP1PPP2/RNB1KB1R w KQq - 0 8. White to move.
+8. d4 is the main line, while 8... a3 is a sideline.
+1. g3 g6 2. c3 h6 3. Qa4 e5 4. Qc4 Rh7 5. h4 h5 6. Nh3 Bc5 — a typical tabiya for this line.
+Bedrock is the layer beneath the soil.
+We start from rnb1qbnr/2pppk2/7p/pB3P2/PP4p1/N6N/2PP1PPP/R1BQK2R b - - 0 9, where Black has the initiative.
+Black blundered with Kg7; e5 would have held the balance.
+Game score: 1. Nh3 b5 2. e4 f5 3. Bxb5 a5 4. exf5 Kf7 5. Ke2 g5 6. a4 Qe8
+Position (FEN): r1q1kb1r/p1ppp1pp/1pn5/5pN1/3PP1P1/2nb4/PPQKBP1P/RNB4R b kq - 4 10. Black to move.
+Best move: Nd1 (engine line Nd1 f4 Ba6).
+1. d4 Nc6 2. c3 Nf6 3. Qc2 Nd5 4. Kd2 Nxc3 5. Nf3 f5 6. e4 b6 — a typical tabiya for this line.
+Position (FEN): rnq1kb1r/p1p3pp/5p1n/3p4/2bp4/N5QN/PP2PPPP/R1B1KBR1 b Qkq - 1 11. Black to move.
+The candidate moves are Ke7, Bxa3 and Kd7.
+The opening continued 1. d4 b5 2. Nh3 f6 3. c4 e5 4. cxb5 Nh6 5. Na3 Ba6 6. Qd3 Bxb5 and the position stayed balanced.
+We start from rnbqkbnr/p1ppp2p/1p3pp1/8/P5P1/2P2P2/1P1PP2P/RNBQKBNR b KQkq - 0 4, where Black has the initiative.
+Instead of c5, Bh6 wins material on the spot.
+1. f3 f6 2. c3 b6 3. a4 g6 4. g4 — a typical tabiya for this line.
+Position (FEN): r1bqkb1r/4n1pp/nppp1p2/p3p3/P6P/1P1N1P2/1RPPP1P1/1NBQKBR1 w kq - 0 12. White to move.
+Black blundered with Nxe5; Na3 would have held the balance.
+Game score: 1. Nh3 a5 2. Nf4 Na6 3. a4 Nh6 4. h3 f6 5. Ra2 e6 6. b3 Ng8
+Position (FEN): rnbqkbnr/pp1pppp1/2p5/7p/6Q1/1P2P3/P1PP1PPP/RNB1KBNR b KQkq - 1 3. Black to move.
+In UCI notation that is d8c7; the promotion h2h1n would be winning.
+1. b3 h5 2. e3 c6 3. Qg4 — a typical tabiya for this line.
+We start from rnb1kb1r/2pqppp1/pp1p1n2/7P/1P6/2P4B/P2PPP1P/RNBQK1NR w KQkq - 0 7, where White has the initiative.
+In UCI notation that is f2f3; the promotion g2g1b would be winning.
+The opening continued 1. g4 d6 2. Bg2 a6 3. Bh3 Qd7 4. b4 h5 5. gxh5 Nf6 6. c3 b6 and the position stayed balanced.
