@@ -1,5 +1,7 @@
-# Dữ liệu và weights — không bao giờ commit
-data/
+# Dữ liệu và weights — không bao giờ commit.
+# Dấu / đầu là bắt buộc: `data/` trần sẽ khớp MỌI thư mục tên data ở mọi
+# độ sâu, nuốt luôn cả package nguồn src/chessvi/data/.
+/data/
 *.gguf
 *.safetensors
 *.bin
@@ -25,7 +27,7 @@ venv/
 .ipynb_checkpoints/
 
 # Engine binaries tải về
-engines/
+/engines/
 
 # Fixture cho test thì phải commit
 !tests/fixtures/**
