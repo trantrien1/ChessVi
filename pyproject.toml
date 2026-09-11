@@ -51,6 +51,10 @@ packages = ["src/chessvi"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Test import `tests.conftest` để dùng chung FEN cố định. `python -m pytest` tự
+# đưa thư mục hiện tại vào sys.path còn `pytest` trần thì không, nên phải khai
+# báo ở đây — nếu không CI (chạy `pytest`) sẽ chết ngay ở bước collect.
+pythonpath = ["."]
 markers = [
     "engine: cần binary UCI engine (Stockfish/Maia) — tự skip nếu thiếu",
 ]
