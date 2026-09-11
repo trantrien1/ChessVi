@@ -71,12 +71,36 @@ def _has_cuda() -> bool:
     return bool(torch.cuda.is_available())
 
 
+def _bf16_supported() -> bool:
+    """bf16 chỉ thật sự dùng được từ Ampere trở lên (compute capability >= 8).
+
+    T4 của Colab là sm_75. Tuỳ phiên bản, transformers ném thẳng
+    "Your setup doesn't support bf16/gpu", hoặc tệ hơn là im lặng chạy bf16 giả
+    lập chậm khủng khiếp. Kiểm tra compute capability thay vì hỏi
+    ``torch.cuda.is_bf16_supported()`` — hàm đó đổi ngữ nghĩa giữa các bản torch
+    (bản mới mặc định tính cả emulation là "được hỗ trợ").
+    """
+    import torch  # noqa: PLC0415
+
+    if not torch.cuda.is_available():
+        return False
+    major, _minor = torch.cuda.get_device_capability()
+    return major >= 8
+
+
+def _compute_dtype() -> Any:
+    """dtype tính toán khi quantize 4-bit: bf16 nếu GPU đỡ được, không thì fp16."""
+    import torch  # noqa: PLC0415
+
+    return torch.bfloat16 if _bf16_supported() else torch.float16
+
+
 def _build_model(settings: SFTSettings, use_4bit: bool) -> Any:
     import torch  # noqa: PLC0415
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training  # noqa: PLC0415
     from transformers import AutoModelForCausalLM  # noqa: PLC0415
 
-    kwargs: dict[str, Any] = {"dtype": torch.bfloat16 if use_4bit else torch.float32}
+    kwargs: dict[str, Any] = {"dtype": _compute_dtype() if use_4bit else torch.float32}
     if use_4bit:
         from transformers import BitsAndBytesConfig  # noqa: PLC0415
 
@@ -84,7 +108,7 @@ def _build_model(settings: SFTSettings, use_4bit: bool) -> Any:
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_compute_dtype=_compute_dtype(),
         )
         kwargs["device_map"] = "auto"
 
@@ -139,7 +163,9 @@ def _tokenize(examples: Sequence[dict[str, Any]], tokenizer: Any, max_length: in
     return Dataset.from_list(rows)
 
 
-def _training_arguments(settings: SFTSettings, use_bf16: bool, push: bool) -> Any:
+def _training_arguments(
+    settings: SFTSettings, use_bf16: bool, use_fp16: bool, push: bool
+) -> Any:
     from transformers import TrainingArguments  # noqa: PLC0415
 
     return TrainingArguments(
@@ -154,7 +180,8 @@ def _training_arguments(settings: SFTSettings, use_bf16: bool, push: bool) -> An
         num_train_epochs=settings.epochs,
         max_steps=settings.max_steps,
         bf16=use_bf16,
-        optim="paged_adamw_8bit" if use_bf16 else "adamw_torch",
+        fp16=use_fp16,
+        optim="paged_adamw_8bit" if (use_bf16 or use_fp16) else "adamw_torch",
         logging_steps=settings.logging_steps,
         save_strategy="steps",
         save_steps=settings.save_steps,
@@ -175,7 +202,10 @@ def run_sft(settings: SFTSettings) -> Path:
     from transformers import AutoTokenizer, DataCollatorForSeq2Seq, Trainer  # noqa: PLC0415
 
     use_4bit = settings.load_in_4bit if settings.load_in_4bit is not None else _has_cuda()
-    use_bf16 = use_4bit  # CPU thì train fp32 cho chắc, bf16 chỉ khi có GPU
+    # CPU thì train fp32 cho chắc. Có GPU thì bf16 nếu là Ampere trở lên,
+    # còn T4/V100 phải dùng fp16 — bật bf16 ở đó là lỗi cứng, không phải chậm.
+    use_bf16 = use_4bit and _bf16_supported()
+    use_fp16 = use_4bit and not use_bf16
 
     push = settings.push_to_hub
     if push and hf_token() is None:
@@ -199,7 +229,7 @@ def run_sft(settings: SFTSettings) -> Path:
     model = _build_model(settings, use_4bit)
     trainer = Trainer(
         model=model,
-        args=_training_arguments(settings, use_bf16, push),
+        args=_training_arguments(settings, use_bf16, use_fp16, push),
         train_dataset=dataset,
         data_collator=DataCollatorForSeq2Seq(tokenizer, padding=True, label_pad_token_id=-100),
     )

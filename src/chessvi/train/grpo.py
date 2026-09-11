@@ -30,7 +30,13 @@ from chessvi.config import hf_token
 from chessvi.data.puzzles import balanced_order
 from chessvi.train.dataset import iter_records
 from chessvi.train.reward import ANSWER_TEMPLATE, puzzle_reward
-from chessvi.train.sft import LORA_ALPHA, LORA_DROPOUT, LORA_RANK
+from chessvi.train.sft import (
+    LORA_ALPHA,
+    LORA_DROPOUT,
+    LORA_RANK,
+    _bf16_supported,
+    _compute_dtype,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +135,7 @@ def _load_model(settings: GRPOSettings, use_4bit: bool) -> Any:
     import torch  # noqa: PLC0415
     from transformers import AutoModelForCausalLM  # noqa: PLC0415
 
-    kwargs: dict[str, Any] = {"dtype": torch.bfloat16 if use_4bit else torch.float32}
+    kwargs: dict[str, Any] = {"dtype": _compute_dtype() if use_4bit else torch.float32}
     if use_4bit:
         from transformers import BitsAndBytesConfig  # noqa: PLC0415
 
@@ -137,7 +143,7 @@ def _load_model(settings: GRPOSettings, use_4bit: bool) -> Any:
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_compute_dtype=_compute_dtype(),
         )
         kwargs["device_map"] = "auto"
 
@@ -158,7 +164,9 @@ def run_grpo(settings: GRPOSettings) -> Path:
     from trl import GRPOConfig, GRPOTrainer  # noqa: PLC0415
 
     use_4bit = settings.load_in_4bit if settings.load_in_4bit is not None else _has_cuda()
-    use_bf16 = use_4bit
+    # bf16 chỉ từ Ampere trở lên; T4 của Colab phải fp16 (xem _bf16_supported).
+    use_bf16 = use_4bit and _bf16_supported()
+    use_fp16 = use_4bit and not use_bf16
 
     push = settings.push_to_hub
     if push and (hf_token() is None or settings.hub_model_id is None):
@@ -190,6 +198,7 @@ def run_grpo(settings: GRPOSettings) -> Path:
         num_train_epochs=settings.epochs,
         max_steps=settings.max_steps,
         bf16=use_bf16,
+        fp16=use_fp16,
         logging_steps=settings.logging_steps,
         save_strategy="steps",
         save_steps=settings.save_steps,
