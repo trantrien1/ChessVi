@@ -87,6 +87,33 @@ class EchoTranslator(Translator):
         return list(texts)
 
 
+def _load_tokenizer(model_name: str) -> Any:
+    """Nạp tokenizer, có đường lui khi ``AutoTokenizer`` hỏng.
+
+    transformers 5.x dựng ``T5Tokenizer`` bằng cách chuyển đổi ``spiece.model``
+    và với ``VietAI/envit5-translation`` thì chết ngay::
+
+        TypeError: argument 'vocab': 'dict' object cannot be converted to 'Sequence'
+
+    Repo của model vốn đã có sẵn ``tokenizer.json``, nên đọc thẳng file đó là
+    bỏ qua được đường chuyển đổi sentencepiece đang hỏng. Đã kiểm chứng: cùng
+    vocab 50048, đúng eos/pad, và placeholder ``<M0>`` sống sót round-trip —
+    điều kiện sống còn của bước mask (nguyên tắc 3 trong CLAUDE.md).
+    """
+    from transformers import AutoTokenizer, PreTrainedTokenizerFast  # noqa: PLC0415
+
+    try:
+        return AutoTokenizer.from_pretrained(model_name)
+    except (TypeError, ValueError) as error:
+        logger.warning(
+            "AutoTokenizer hỏng với %s (%s: %s) — đọc thẳng tokenizer.json",
+            model_name,
+            type(error).__name__,
+            error,
+        )
+        return PreTrainedTokenizerFast.from_pretrained(model_name)
+
+
 class HFTranslator(Translator):
     """Dịch bằng model seq2seq trên Hugging Face (chạy ở Kaggle/Colab).
 
@@ -104,7 +131,7 @@ class HFTranslator(Translator):
         max_new_tokens: int = 512,
         prefix: str = "en: ",
     ) -> None:
-        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer  # noqa: PLC0415
+        from transformers import AutoModelForSeq2SeqLM  # noqa: PLC0415
 
         import torch  # noqa: PLC0415
 
@@ -112,7 +139,7 @@ class HFTranslator(Translator):
         self._prefix = prefix
         resolved = device or ("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("Nạp model dịch %s trên %s", model_name, resolved)
-        self._tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self._tokenizer = _load_tokenizer(model_name)
         self._model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(resolved)
         self._device = resolved
 

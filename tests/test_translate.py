@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -14,6 +16,7 @@ from chessvi.data.translate import (
     EchoTranslator,
     TranslationJob,
     Translator,
+    _load_tokenizer,
     build_translator,
     translate_record,
 )
@@ -198,3 +201,54 @@ def test_khong_nhan_ra_truong_nao_thi_bao_loi(tmp_path: Path) -> None:
     job = TranslationJob(EchoTranslator(), out_dir=tmp_path, split="sft")
     with pytest.raises(ValueError, match="--fields"):
         job.run([{"foo": 1}], dry_run=True)
+
+
+# -- nạp tokenizer ---------------------------------------------------------
+#
+# transformers 5.x dựng T5Tokenizer từ spiece.model và chết với
+# VietAI/envit5-translation: "argument 'vocab': 'dict' object cannot be
+# converted to 'Sequence'". Repo model có sẵn tokenizer.json nên đọc thẳng file
+# đó là qua. Ba test dưới khoá đường lui mà không cần mạng lẫn transformers.
+
+
+def _fake_transformers(auto_error: Exception | None = None) -> types.ModuleType:
+    module = types.ModuleType("transformers")
+
+    class AutoTokenizer:
+        @staticmethod
+        def from_pretrained(name: str) -> str:
+            if auto_error is not None:
+                raise auto_error
+            return f"auto:{name}"
+
+    class PreTrainedTokenizerFast:
+        @staticmethod
+        def from_pretrained(name: str) -> str:
+            return f"fast:{name}"
+
+    module.AutoTokenizer = AutoTokenizer  # type: ignore[attr-defined]
+    module.PreTrainedTokenizerFast = PreTrainedTokenizerFast  # type: ignore[attr-defined]
+    return module
+
+
+def test_load_tokenizer_duong_thuong_dung_autotokenizer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(sys.modules, "transformers", _fake_transformers())
+    assert _load_tokenizer("m") == "auto:m"
+
+
+def test_load_tokenizer_typeerror_thi_lui_ve_tokenizer_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Đúng lỗi thật gặp trên Colab với transformers 5.5.4."""
+    error = TypeError("argument 'vocab': 'dict' object cannot be converted to 'Sequence'")
+    monkeypatch.setitem(sys.modules, "transformers", _fake_transformers(error))
+    assert _load_tokenizer("m") == "fast:m"
+
+
+def test_load_tokenizer_khong_nuot_loi_khac(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Model không tồn tại thì phải nổ, không được lặng lẽ thử đường khác."""
+    monkeypatch.setitem(sys.modules, "transformers", _fake_transformers(OSError("404")))
+    with pytest.raises(OSError, match="404"):
+        _load_tokenizer("khong-ton-tai")
