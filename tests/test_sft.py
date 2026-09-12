@@ -17,7 +17,14 @@ from chessvi.train.dataset import (
     iter_records,
     load_examples,
 )
-from chessvi.train.sft import LORA_ALPHA, LORA_RANK, build_parser, settings_from_args
+from chessvi.train.sft import (
+    ATTENTION_ONLY_TARGETS,
+    LORA_ALPHA,
+    LORA_RANK,
+    _lora_targets,
+    build_parser,
+    settings_from_args,
+)
 from tests.conftest import FEN_START
 
 FIXTURE = Path(__file__).parent / "fixtures" / "c1_sample.jsonl"
@@ -109,6 +116,29 @@ def test_iter_records_doc_duoc_parquet(tmp_path: Path) -> None:
 def test_cau_hinh_lora_dung_yeu_cau_t8() -> None:
     assert LORA_RANK == 32
     assert LORA_ALPHA == 64
+
+
+class _Config:
+    """Đủ giống config của transformers cho phép chọn target module."""
+
+    def __init__(self, **fields: object) -> None:
+        self.__dict__.update(fields)
+
+
+def test_lora_bam_all_linear_tren_model_dense() -> None:
+    assert _lora_targets(_Config(hidden_size=2560)) == "all-linear"
+
+
+def test_lora_bo_qua_expert_tren_model_moe() -> None:
+    """all-linear trên Qwen3-30B-A3B ra ~1,7 tỷ tham số LoRA — không dùng được.
+
+    128 expert x 3 phép chiếu x 48 lớp = 18.432 linear, mà router chỉ kích
+    hoạt 8/128 expert mỗi token nên hầu hết adapter không nhận gradient.
+    """
+    targets = _lora_targets(_Config(hidden_size=2048, num_experts=128))
+    assert targets == ATTENTION_ONLY_TARGETS
+    assert not any("expert" in name for name in targets)
+    assert "gate_proj" not in targets and "down_proj" not in targets
 
 
 def test_mac_dinh_bat_push_to_hub() -> None:

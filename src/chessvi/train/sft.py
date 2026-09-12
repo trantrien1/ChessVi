@@ -95,6 +95,32 @@ def _compute_dtype() -> Any:
     return torch.bfloat16 if _bf16_supported() else torch.float16
 
 
+#: LoRA chỉ bám vào attention. Dùng cho model MoE; xem :func:`_lora_targets`.
+ATTENTION_ONLY_TARGETS: list[str] = ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+
+def _lora_targets(config: Any) -> str | list[str]:
+    """Chọn module cho LoRA bám vào, theo kiến trúc của base model.
+
+    Model dense thì ``"all-linear"`` là lựa chọn tốt. Model **MoE thì không**:
+    Qwen3-30B-A3B có 128 expert × 3 phép chiếu × 48 lớp = 18.432 linear, nên
+    ``"all-linear"`` sinh ra ~1,7 tỷ tham số LoRA — nhiều hơn cả một model
+    1,5B. Tệ hơn, router chỉ kích hoạt 8/128 expert mỗi token, nên hầu hết
+    adapter gần như không nhận gradient: tốn bộ nhớ và thời gian để học được
+    rất ít.
+
+    Attention thì mọi token đều đi qua, nên bám vào đó là đủ và ổn định. Với
+    Qwen3-30B-A3B ra khoảng 27M tham số huấn luyện.
+    """
+    if getattr(config, "num_experts", None):
+        logger.info(
+            "Base model là MoE (%s expert) — LoRA chỉ bám attention, bỏ expert",
+            config.num_experts,
+        )
+        return ATTENTION_ONLY_TARGETS
+    return "all-linear"
+
+
 def _build_model(settings: SFTSettings, use_4bit: bool) -> Any:
     import torch  # noqa: PLC0415
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training  # noqa: PLC0415
@@ -124,7 +150,7 @@ def _build_model(settings: SFTSettings, use_4bit: bool) -> Any:
         lora_dropout=LORA_DROPOUT,
         bias="none",
         task_type="CAUSAL_LM",
-        target_modules="all-linear",
+        target_modules=_lora_targets(model.config),
     )
     model = get_peft_model(model, lora)
     model.print_trainable_parameters()
