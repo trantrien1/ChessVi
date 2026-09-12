@@ -112,7 +112,11 @@ class HFPredictor(Predictor):
         self._device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("Nạp %s trên %s", model_path, self._device)
         self._tokenizer = AutoTokenizer.from_pretrained(model_path)
-        model = AutoModelForCausalLM.from_pretrained(model_path).to(self._device)
+        # dtype="auto" lấy đúng dtype ghi trong config (bf16 với Qwen3). Không
+        # truyền thì transformers nạp fp32: 4B thành 16GB thay vì 8GB, và chậm
+        # gấp đôi mà chẳng chính xác hơn — eval chỉ đọc argmax của nước đi.
+        model = AutoModelForCausalLM.from_pretrained(model_path, dtype="auto")
+        model = model.to(self._device)
         if adapter is not None:
             from peft import PeftModel  # noqa: PLC0415
 
