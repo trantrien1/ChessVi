@@ -247,3 +247,21 @@ def test_cli_out_clean(tmp_path: Path) -> None:
     )
     assert code == 0
     assert (clean / "part-00000.parquet").exists()
+
+
+def test_cli_khong_mau_nao_pass_thi_bao_loi_va_khong_ghi_file_rong(tmp_path: Path) -> None:
+    """Parquet rỗng trông y hệt lần chạy thành công — T8 chạy rồi mới chết."""
+    source = tmp_path / "in.jsonl"
+    source.write_text(json.dumps(_record(answer="Qh8 thôi."), ensure_ascii=False), "utf-8")
+    clean = tmp_path / "validated"
+
+    code = main(
+        [
+            "--input", str(source),
+            "--rejected", str(tmp_path / "r.jsonl"),
+            "--out-clean", str(clean),
+        ]
+    )
+
+    assert code == 1, "phải trả về mã lỗi, đừng để pipeline đi tiếp"
+    assert not clean.exists(), "không được để lại thư mục rỗng trông như đã xong"

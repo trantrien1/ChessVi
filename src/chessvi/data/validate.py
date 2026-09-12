@@ -272,7 +272,14 @@ def write_clean(records: Sequence[dict[str, Any]], path: Path) -> None:
 
     Đuôi ``.jsonl`` thì ghi JSONL, còn lại coi ``path`` là thư mục và ghi
     ``part-00000.parquet`` bên trong (khớp với cách ``iter_records`` đọc).
+
+    Không mẫu nào pass thì **không ghi gì**. Một parquet rỗng trông y hệt một
+    lần chạy thành công: ``ls`` thấy file, T8 chạy rồi mới chết vì 0 example,
+    lúc đó nguyên nhân thật đã lùi lại vài bước.
     """
+    if not records:
+        logger.error("Không mẫu nào pass — KHÔNG ghi %s (file rỗng còn tệ hơn)", path)
+        return
     if path.suffix == ".jsonl":
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as handle:
@@ -411,6 +418,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             ALARM_REJECT_RATE * 100,
         )
         logger.warning("!" * 56)
+    if args.out_clean is not None and report.passed == 0:
+        logger.error("Không có gì để train. Đọc %s xem lý do rồi quay lại T5.", rejected)
+        return 1
     return 0
 
 
