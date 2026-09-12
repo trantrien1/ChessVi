@@ -229,3 +229,30 @@ def test_chot_quyen_ghi_hub_noi_ro_ca_hai_nguyen_nhan(
     assert "Write" in message
     assert "namespace" in message.lower()
     assert "--no-push" in message
+
+
+# -- phân bố độ dài và gom batch ------------------------------------------
+
+
+def test_group_by_length_mac_dinh_tat() -> None:
+    """Bật khi --resume một lần chạy không có nó thì sampler đổi, mẫu lệch."""
+    args = build_parser().parse_args(["--data", "d"])
+    assert settings_from_args(args).group_by_length is False
+
+
+def test_group_by_length_bat_duoc_bang_co() -> None:
+    args = build_parser().parse_args(["--data", "d", "--group-by-length"])
+    assert settings_from_args(args).group_by_length is True
+
+
+def test_log_do_dai_in_phan_vi(caplog: pytest.LogCaptureFixture) -> None:
+    """p50 sát p99 thì gom batch vô ích; lệch xa thì đáng bật."""
+    import logging
+
+    from chessvi.train.sft import _log_lengths
+
+    with caplog.at_level(logging.INFO, logger="chessvi.train.sft"):
+        _log_lengths([300] * 500 + [1900] * 10)
+
+    assert "p50=300" in caplog.text
+    assert "max=1900" in caplog.text

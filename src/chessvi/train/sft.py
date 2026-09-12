@@ -60,6 +60,8 @@ class SFTSettings:
     #: None = tự quyết theo việc máy có GPU hay không.
     load_in_4bit: bool | None = None
     resume: bool = False
+    #: Gom chuỗi dài gần nhau vào cùng batch để bớt pad. Xem :func:`_log_lengths`.
+    group_by_length: bool = False
 
 
 # -- phụ thuộc nặng, import lười ------------------------------------------
@@ -215,7 +217,28 @@ def _tokenize(examples: Sequence[dict[str, Any]], tokenizer: Any, max_length: in
     if not rows:
         raise ValueError("không dựng được mẫu nào sau khi tokenize")
     logger.info("Tokenize xong %d mẫu (max_length=%d)", len(rows), max_length)
+    _log_lengths([len(row["input_ids"]) for row in rows])
     return Dataset.from_list(rows)
+
+
+def _log_lengths(lengths: Sequence[int]) -> None:
+    """In phân bố độ dài token — cho biết pad đang phí bao nhiêu.
+
+    Collator pad động theo chuỗi dài nhất *trong từng micro-batch*, nên chi phí
+    mỗi batch tỷ lệ với chuỗi dài nhất của batch đó chứ không phải độ dài trung
+    bình. Batch càng to thì càng dễ vớ phải một chuỗi dài, và cả batch phải
+    gánh theo. Chênh lệch p50 với p99 càng lớn thì ``--group-by-length`` càng
+    đáng bật.
+    """
+    ordered = sorted(lengths)
+    last = len(ordered) - 1
+
+    def at(quantile: float) -> int:
+        return ordered[min(last, int(quantile * len(ordered)))]
+
+    logger.info(
+        "Độ dài token: p50=%d p90=%d p99=%d max=%d", at(0.50), at(0.90), at(0.99), ordered[-1]
+    )
 
 
 def _training_arguments(
@@ -241,6 +264,7 @@ def _training_arguments(
         save_strategy="steps",
         save_steps=settings.save_steps,
         save_total_limit=2,
+        group_by_length=settings.group_by_length,
         report_to=[],
         seed=settings.seed,
         # Colab hay ngắt giữa chừng: đẩy luôn checkpoint lên Hub để resume được.
@@ -325,6 +349,13 @@ def build_parser() -> argparse.ArgumentParser:
     quant = parser.add_mutually_exclusive_group()
     quant.add_argument("--4bit", dest="four_bit", action="store_true", default=None)
     quant.add_argument("--no-4bit", dest="four_bit", action="store_false")
+    parser.add_argument(
+        "--group-by-length",
+        action="store_true",
+        help="Gom chuỗi dài gần nhau vào cùng batch, bớt pad. ĐỪNG bật khi "
+        "--resume một lần chạy đã bắt đầu mà không có nó: sampler đổi thì thứ "
+        "tự mẫu đổi theo",
+    )
     parser.add_argument("--resume", action="store_true", help="Resume từ checkpoint")
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
@@ -348,6 +379,7 @@ def settings_from_args(args: argparse.Namespace) -> SFTSettings:
         hub_model_id=args.hub_model_id,
         load_in_4bit=args.four_bit,
         resume=args.resume,
+        group_by_length=args.group_by_length,
     )
 
 
