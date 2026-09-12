@@ -76,6 +76,7 @@ VARIANTS: dict[str, str] = {
     "tập hợp": "file",
     "lên hạng": "promotion",
     "thăng hạng": "promotion",
+    "thăng cấp": "promotion",
     "tốt đi qua": "passed pawn",
     # fork
     "nĩa": "fork",

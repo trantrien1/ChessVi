@@ -33,9 +33,11 @@ from chessvi.logging_setup import configure_logging
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ENGLISH_RUN_THRESHOLD",
     "RejectReason",
     "ValidationReport",
     "ValidationResult",
+    "longest_english_run",
     "validate_dataset",
     "validate_record",
     "write_clean",
@@ -174,8 +176,13 @@ def _parse_label(label: str, fen: str) -> chess.Move | None:
     return parse_move(board, label)
 
 
-def _longest_english_run(text: str) -> int:
-    """Độ dài khúc dài nhất gồm toàn từ không dấu *và* có hư từ tiếng Anh."""
+def longest_english_run(text: str) -> int:
+    """Độ dài khúc dài nhất gồm toàn từ không dấu *và* có hư từ tiếng Anh.
+
+    Công khai vì :mod:`chessvi.data.translate` dùng lại đúng luật này làm cổng
+    chất lượng ngay sau khi sinh: thứ gì T6 sắp vứt thì được thử dịch lại một
+    lần trước, thay vì mất trắng cả mẫu.
+    """
     best = 0
     run: list[str] = []
     for match in _WORD_RE.finditer(text):
@@ -244,7 +251,7 @@ def validate_record(
         reasons.append(RejectReason.LEFTOVER_PLACEHOLDER)
         details.append("placeholder còn sót: " + ", ".join(leftovers))
 
-    longest = max((_longest_english_run(text) for text in texts), default=0)
+    longest = max((longest_english_run(text) for text in texts), default=0)
     if longest >= english_run_threshold:
         reasons.append(RejectReason.ENGLISH_CHUNK)
         details.append(f"khúc tiếng Anh dài {longest} từ")

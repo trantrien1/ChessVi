@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 import types
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from chessvi.data.translate import (
     TranslationJob,
     Translator,
     _load_tokenizer,
+    _reject_reason,
     build_glossary_block,
     build_translator,
     translate_record,
@@ -270,8 +272,7 @@ def test_glossary_block_dung_tu_bang_chuan() -> None:
 def _bare_llm_translator() -> LLMTranslator:
     """Dựng instance không chạy __init__ (init cần transformers + vLLM)."""
     translator = LLMTranslator.__new__(LLMTranslator)
-    translator.placeholder_mismatches = 0
-    translator.echoed_inputs = 0
+    translator.rejected = Counter()
     translator._cache = {}
     return translator
 
@@ -285,15 +286,17 @@ def _stub_generation(translator: LLMTranslator, replies: list[list[str]]) -> lis
         calls.append(list(prompts))
         return pending.pop(0)
 
-    translator._render = lambda text, *, insist=False: ("INSIST:" if insist else "") + text
+    translator._render = lambda text, *, hint=None: (f"[{hint}]" if hint else "") + text
     translator._generate = fake_generate
     return calls
 
 
 def test_finalize_bo_khoi_think_cua_qwen() -> None:
     translator = _bare_llm_translator()
-    out = translator._finalize("Play <M0>.", "<think>cân nhắc</think>Đi <M0>.")
-    assert out == "Đi <M0>."
+    assert translator._finalize("Play <M0>.", "<think>cân nhắc</think>Đi <M0>.") == (
+        "Đi <M0>.",
+        None,
+    )
 
 
 def test_finalize_giu_nguyen_ban_goc_khi_mat_placeholder() -> None:
@@ -303,21 +306,80 @@ def test_finalize_giu_nguyen_ban_goc_khi_mat_placeholder() -> None:
     """
     translator = _bare_llm_translator()
     source = "White plays <M0> then <M1>."
-    assert translator._finalize(source, "Trắng đi rồi đi tiếp.") == source
-    assert translator.placeholder_mismatches == 1
+    assert translator._finalize(source, "Trắng đi rồi đi tiếp.") == (source, "placeholder")
 
 
 def test_finalize_bat_ca_khi_placeholder_bi_doi_so() -> None:
     translator = _bare_llm_translator()
     source = "White plays <M0> then <M1>."
-    assert translator._finalize(source, "Trắng đi <M0> rồi <M0>.") == source
+    assert translator._finalize(source, "Trắng đi <M0> rồi <M0>.")[0] == source
 
 
 def test_finalize_chap_nhan_khi_placeholder_khop() -> None:
     translator = _bare_llm_translator()
-    out = translator._finalize("White plays <M0>.", "  Trắng đi <M0>.  ")
-    assert out == "Trắng đi <M0>."
-    assert translator.placeholder_mismatches == 0
+    assert translator._finalize("White plays <M0>.", "  Trắng đi <M0>.  ") == (
+        "Trắng đi <M0>.",
+        None,
+    )
+
+
+# -- cổng chất lượng -------------------------------------------------------
+#
+# Ba case dưới đây lấy nguyên văn từ dry-run 20 mẫu của Qwen3-30B-A3B, rút gọn
+# cho vừa test. Hai trong ba KHÔNG bị T6 bắt: chúng là tiếng Việt trôi chảy,
+# nước đi hợp lệ, FINAL_ANSWER đúng — chỉ có nội dung là sai.
+
+_EN_LONG = (
+    "The position is defined by the exposure of the white king on d1 and the "
+    "vulnerability of the undefended bishop on c4. With the black queen active "
+    "on a1, the immediate tactical priority is to exploit these weaknesses. "
+    "White is forced to address the check with the bishop move, which allows "
+    "Black to maintain the initiative and a crushing advantage."
+)
+
+
+def test_reject_bat_ban_chua_dich_du_khong_chep_y_nguyen() -> None:
+    """Mẫu 5/20: model chép lại tiếng Anh nhưng rụng một dấu '+'.
+
+    Phép so bằng thuần tuý trượt vì chỉ lệch một ký tự; luật khúc tiếng Anh
+    của T6 thì bắt được.
+    """
+    assert _reject_reason(_EN_LONG + " Play a1d4+.", _EN_LONG + " Play a1d4.") == "chưa dịch"
+
+
+def test_reject_van_bat_ban_chep_y_nguyen_du_cau_ngan() -> None:
+    """Câu ngắn không đủ hư từ cho luật khúc tiếng Anh — cần phép so bằng."""
+    assert _reject_reason("White plays <M0>.", "White plays <M0>.") == "chưa dịch"
+
+
+def test_reject_bat_ban_dich_bi_cut() -> None:
+    """Mẫu 10/20: rụng nguyên đoạn mở đầu, phần còn lại vẫn là tiếng Việt tốt."""
+    source = "A" * 1104
+    assert _reject_reason(source, "Bản dịch tiếng Việt đầy đủ." * 20) == "cụt"
+
+
+def test_reject_khong_phan_nan_cau_ngan_co_lai() -> None:
+    """Câu ngắn co giãn tự nhiên; đừng bắt nhầm."""
+    assert _reject_reason("Find the best move.", "Tìm nước tốt nhất.") is None
+
+
+def test_reject_bat_doi_mau_quan() -> None:
+    """Mẫu 17/20: Vua Trắng thành Vua Đen. T6 mù hoàn toàn với lỗi này."""
+    source = "The White King is trapped. White is forced to delay the mate."
+    flipped = "Vua Đen đang bị vây. Đen buộc phải hoãn nước chiếu hết lại."
+    assert _reject_reason(source, flipped) == "sai màu quân"
+
+
+def test_reject_cho_qua_khi_mau_quan_con_du() -> None:
+    source = "The white king is trapped. White cannot defend the black knight."
+    fine = "Vua trắng đang bị vây. Trắng không thể phòng thủ trước mã đen."
+    assert _reject_reason(source, fine) is None
+
+
+def test_reject_bo_qua_khi_mau_quan_chi_nhac_mot_lan() -> None:
+    """Nhắc một lần lẻ có thể được diễn đạt lại hợp lệ — không đủ để kết luận."""
+    source = "The white king is trapped in the corner of the board by the rook."
+    assert _reject_reason(source, "Vua đang bị xe vây ở góc bàn cờ hoàn toàn.") is None
 
 
 def test_backend_khong_biet_liet_ke_ca_llm() -> None:
@@ -384,8 +446,17 @@ def test_translate_batch_thu_lai_khi_model_chep_nguyen_van() -> None:
 
     assert translator.translate_batch([source]) == ["Trắng đi <M0>."]
     assert len(calls) == 2, "phải có một lượt nhắc lại"
-    assert calls[1][0].startswith("INSIST:")
-    assert translator.echoed_inputs == 0, "thử lại thành công thì không tính là hỏng"
+    assert translator.rejected == Counter(), "thử lại thành công thì không tính là hỏng"
+
+
+def test_translate_batch_nhac_dung_loi_khi_thu_lai() -> None:
+    """Nhắc trúng lỗi hiệu quả hơn nhắc chung chung."""
+    translator = _bare_llm_translator()
+    source = "White plays <M0>."
+    calls = _stub_generation(translator, [[source], ["Trắng đi <M0>."]])
+
+    translator.translate_batch([source])
+    assert "Không chép lại tiếng Anh" in calls[1][0]
 
 
 def test_translate_batch_dem_lai_khi_thu_lai_van_khong_dich() -> None:
@@ -394,4 +465,15 @@ def test_translate_batch_dem_lai_khi_thu_lai_van_khong_dich() -> None:
     _stub_generation(translator, [[source], [source]])
 
     assert translator.translate_batch([source]) == [source]
-    assert translator.echoed_inputs == 1
+    assert translator.rejected["chưa dịch"] == 1
+
+
+def test_quality_report_noi_ro_con_bao_nhieu_truong_hong() -> None:
+    """Chạy 5 tiếng xong mà không biết bao nhiêu mẫu hỏng thì vô dụng."""
+    translator = _bare_llm_translator()
+    assert "mọi trường đều đạt" in translator.quality_report()
+
+    translator.rejected["cụt"] = 3
+    report = translator.quality_report()
+    assert "3 trường" in report
+    assert "cụt: 3" in report

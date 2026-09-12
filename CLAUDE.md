@@ -120,6 +120,8 @@ rook → "cổ tay", pawn → "sát thủ", checkmate → "giao phối", file �
 | file | cột |
 | rank | hàng |
 | square | ô |
+| kingside | cánh vua |
+| queenside | cánh hậu |
 
 Bổ sung thì thêm vào bảng này trước, không tự chế trong prompt. Prompt dịch
 được **dựng từ chính bảng này** (`build_glossary_block`), nên sửa ở đây là sửa

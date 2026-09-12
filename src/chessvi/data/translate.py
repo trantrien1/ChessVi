@@ -20,6 +20,7 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from collections import Counter
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,6 +29,7 @@ from typing import Any
 from chessvi.config import Paths
 from chessvi.data.glossary import GLOSSARY, enforce_glossary
 from chessvi.data.mask import PLACEHOLDER_RE, mask, unmask
+from chessvi.data.validate import ENGLISH_RUN_THRESHOLD, longest_english_run
 from chessvi.logging_setup import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -75,6 +77,16 @@ DEFAULT_HF_MODEL = "VietAI/envit5-translation"
 #: Chỉ có A100 40GB thì dùng ``--model Qwen/Qwen3-14B``.
 DEFAULT_LLM_MODEL = "Qwen/Qwen3-30B-A3B"
 
+#: Bản dịch ngắn hơn ngần này lần bản gốc thì coi là bị cụt.
+#:
+#: Đo trên 20 mẫu dry-run thật của Qwen3-30B-A3B: bảy bản dịch đạt nằm trong
+#: khoảng 0.82-0.92, bản rụng mất nguyên đoạn mở đầu là 0.59. Ngưỡng 0.70 nằm
+#: giữa khoảng trống đó nên không đụng vào bản dịch tốt.
+MIN_LENGTH_RATIO = 0.70
+
+#: Dưới ngần này ký tự thì bỏ qua phép so độ dài — câu ngắn co giãn tự nhiên.
+SHORT_TEXT_CHARS = 200
+
 
 # -- backend dịch ---------------------------------------------------------
 
@@ -90,6 +102,10 @@ class Translator(ABC):
 
     def translate(self, text: str) -> str:
         return self.translate_batch([text])[0]
+
+    def quality_report(self) -> str | None:
+        """Tóm tắt chất lượng cả lần chạy. ``None`` nếu backend không theo dõi."""
+        return None
 
 
 class EchoTranslator(Translator):
@@ -236,9 +252,9 @@ class LLMTranslator(Translator):
         self._system = SYSTEM_PROMPT_VI.format(glossary=build_glossary_block())
         self._tokenizer = AutoTokenizer.from_pretrained(model_name)
         self._cache: dict[str, str] = {}
-        self.placeholder_mismatches = 0
-        #: Số mẫu model chép nguyên đầu vào và thử lại vẫn không dịch.
-        self.echoed_inputs = 0
+        #: Trường không qua nổi cổng chất lượng kể cả sau khi thử lại, đếm
+        #: theo lý do. Được in ra cuối lần chạy qua :meth:`quality_report`.
+        self.rejected: Counter[str] = Counter()
 
         if use_vllm:
             from vllm import LLM, SamplingParams  # noqa: PLC0415
@@ -263,13 +279,10 @@ class LLMTranslator(Translator):
                 model_name, dtype="auto", device_map="auto"
             )
 
-    def _render(self, text: str, *, insist: bool = False) -> str:
+    def _render(self, text: str, *, hint: str | None = None) -> str:
         content = text
-        if insist:
-            content = (
-                "DỊCH đoạn dưới sang tiếng Việt. Không chép lại nguyên văn "
-                "tiếng Anh. Chỉ xuất bản dịch tiếng Việt:\n\n" + text
-            )
+        if hint is not None:
+            content = f"DỊCH đoạn dưới sang tiếng Việt. {hint}\n\n{text}"
         messages = [
             {"role": "system", "content": self._system},
             {"role": "user", "content": content},
@@ -292,28 +305,53 @@ class LLMTranslator(Translator):
         # lặp trong translate_records chỉ hoạt động trong phạm vi một batch.
         todo = [text for text in texts if text not in self._cache]
         if todo:
-            outputs = self._generate([self._render(text) for text in todo])
-            results = [
-                self._finalize(source, output)
-                for source, output in zip(todo, outputs, strict=True)
-            ]
-
-            # Model đôi khi chép nguyên đầu vào thay vì dịch (quan sát thật:
-            # 2/20 mẫu). Nhắc lại một lần dứt khoát hơn rồi mới chịu thua.
-            echoed = [i for i, (src, out) in enumerate(zip(todo, results)) if src == out]
-            if echoed:
-                logger.warning("%d mẫu bị chép nguyên văn — thử lại", len(echoed))
-                self.echoed_inputs += len(echoed)
-                retry = self._generate([self._render(todo[i], insist=True) for i in echoed])
-                for position, output in zip(echoed, retry, strict=True):
-                    fixed = self._finalize(todo[position], output)
-                    if fixed != todo[position]:
-                        results[position] = fixed
-                        self.echoed_inputs -= 1
-
-            self._cache.update(zip(todo, results, strict=True))
+            self._cache.update(zip(todo, self._translate_checked(todo), strict=True))
 
         return [self._cache[text] for text in texts]
+
+    def _translate_checked(self, todo: Sequence[str]) -> list[str]:
+        """Sinh, soát cổng chất lượng, thử lại đúng một lượt cho mẫu hỏng.
+
+        Hỏng cả lượt hai thì trả về **bản gốc tiếng Anh** chứ không phải bản
+        dịch hỏng: mẫu tiếng Anh bị T6 loại thẳng và đếm được, còn mẫu dịch
+        sai màu quân hay mất một đoạn thì lọt qua T6 và âm thầm vào tập train.
+        """
+        outputs = self._generate([self._render(text) for text in todo])
+        results: list[str] = []
+        bad: list[tuple[int, str]] = []
+        for index, (source, output) in enumerate(zip(todo, outputs, strict=True)):
+            text, reason = self._finalize(source, output)
+            results.append(text)
+            if reason is not None:
+                bad.append((index, reason))
+
+        if bad:
+            tally = Counter(reason for _, reason in bad)
+            logger.warning(
+                "%d/%d bản dịch không đạt (%s) — thử lại",
+                len(bad),
+                len(todo),
+                ", ".join(f"{reason}: {n}" for reason, n in tally.most_common()),
+            )
+            retry = self._generate(
+                [self._render(todo[i], hint=_RETRY_HINTS[reason]) for i, reason in bad]
+            )
+            for (index, _), output in zip(bad, retry, strict=True):
+                text, reason = self._finalize(todo[index], output)
+                results[index] = text
+                if reason is not None:
+                    self.rejected[reason] += 1
+
+        return results
+
+    def quality_report(self) -> str | None:
+        if not self.rejected:
+            return "Cổng chất lượng: mọi trường đều đạt."
+        detail = ", ".join(f"{reason}: {n}" for reason, n in self.rejected.most_common())
+        return (
+            f"Cổng chất lượng: {sum(self.rejected.values())} trường giữ nguyên "
+            f"tiếng Anh sau khi thử lại ({detail}) — T6 sẽ loại chúng"
+        )
 
     def _generate(self, prompts: Sequence[str]) -> list[str]:
         if self._engine is not None:
@@ -335,22 +373,77 @@ class LLMTranslator(Translator):
             results.append(self._tokenizer.decode(new_tokens, skip_special_tokens=True))
         return results
 
-    def _finalize(self, source: str, output: str) -> str:
-        """Dọn output và từ chối bản dịch làm hỏng placeholder."""
+    def _finalize(self, source: str, output: str) -> tuple[str, str | None]:
+        """Dọn output rồi soát cổng chất lượng.
+
+        Trả ``(text, lý do hỏng)``; hỏng thì ``text`` là **bản gốc**, không
+        phải bản dịch hỏng.
+        """
         cleaned = _THINK_RE.sub("", output).strip()
-        if _placeholders(cleaned) != _placeholders(source):
-            self.placeholder_mismatches += 1
-            logger.warning(
-                "Bản dịch làm lệch placeholder (%s -> %s) — giữ nguyên bản gốc",
-                _placeholders(source),
-                _placeholders(cleaned),
-            )
-            return source
-        return cleaned
+        reason = _reject_reason(source, cleaned)
+        if reason is not None:
+            logger.debug("Từ chối bản dịch (%s): %.80s", reason, cleaned)
+            return source, reason
+        return cleaned, None
 
 
 #: Qwen3 và vài model khác bọc phần suy luận trong <think>...</think>.
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+#: Màu quân: cách viết tiếng Anh trong bản gốc -> cách viết tiếng Việt phải có
+#: trong bản dịch. Dùng để bắt lỗi đổi bên.
+_COLOR_PAIRS: tuple[tuple[re.Pattern[str], re.Pattern[str]], ...] = (
+    (
+        re.compile(r"(?<!\w)white(?!\w)", re.IGNORECASE),
+        re.compile(r"(?<!\w)trắng(?!\w)", re.IGNORECASE),
+    ),
+    (
+        re.compile(r"(?<!\w)black(?!\w)", re.IGNORECASE),
+        re.compile(r"(?<!\w)đen(?!\w)", re.IGNORECASE),
+    ),
+)
+
+#: Lý do hỏng -> câu nhắc thêm khi thử lại. Nhắc đúng lỗi hiệu quả hơn nhắc chung.
+_RETRY_HINTS: dict[str, str] = {
+    "placeholder": (
+        "Chép lại y hệt mọi ký hiệu dạng <M0>, <F0>, <N0> — đúng số lượng, "
+        "đúng thứ tự, không thêm không bớt."
+    ),
+    "chưa dịch": "Không chép lại tiếng Anh. Chỉ xuất bản dịch tiếng Việt.",
+    "cụt": "Dịch ĐẦY ĐỦ từ câu đầu tới câu cuối, không bỏ sót câu hay đoạn nào.",
+    "sai màu quân": (
+        "Dịch đúng màu quân: white = trắng, black = đen. Tuyệt đối không đổi bên."
+    ),
+}
+
+
+def _reject_reason(source: str, cleaned: str) -> str | None:
+    """Bản dịch có hỏng không? Trả nhãn lý do, hoặc ``None`` nếu đạt.
+
+    Cả bốn lỗi đều quan sát được trong dry-run 20 mẫu của Qwen3-30B-A3B, và
+    hai trong số đó **T6 không bắt được** vì chúng cho ra tiếng Việt trôi chảy:
+
+    ``placeholder``   số hoặc thứ tự ký hiệu cờ lệch so với bản gốc.
+    ``chưa dịch``     model chép lại tiếng Anh (mẫu 5/20). Dùng đúng luật của
+                      T6 nên thứ gì T6 sắp vứt thì được thử lại trước. Bản
+                      chép y nguyên bị bắt riêng vì câu ngắn không đủ hư từ
+                      cho phép đếm khúc tiếng Anh.
+    ``cụt``           rụng mất cả một đoạn (mẫu 10/20 mất nguyên đoạn mở đầu).
+    ``sai màu quân``  bản gốc nhắc "white"/"black" nhiều lần mà bản dịch không
+                      nhắc "trắng"/"đen" lần nào (mẫu 17/20 biến Vua Trắng
+                      thành Vua Đen). Đây là sai sự thật bàn cờ.
+    """
+    if _placeholders(cleaned) != _placeholders(source):
+        return "placeholder"
+    if cleaned == source or longest_english_run(cleaned) >= ENGLISH_RUN_THRESHOLD:
+        return "chưa dịch"
+    if len(source) >= SHORT_TEXT_CHARS and len(cleaned) < MIN_LENGTH_RATIO * len(source):
+        return "cụt"
+    for en_pattern, vi_pattern in _COLOR_PAIRS:
+        # Nhắc >= 2 lần mới xét: một lần lẻ có thể được diễn đạt lại hợp lệ.
+        if len(en_pattern.findall(source)) >= 2 and not vi_pattern.search(cleaned):
+            return "sai màu quân"
+    return None
 
 
 def _placeholders(text: str) -> list[str]:
@@ -597,6 +690,9 @@ class TranslationJob:
             if self._flush(shards):
                 shards += 1
             self._write_state(skip + processed, shards)
+        report = self.translator.quality_report()
+        if report is not None:
+            logger.info("%s", report)
         logger.info("Xong %d mẫu%s", processed, " (dry-run, không ghi file)" if dry_run else "")
         return processed
 
