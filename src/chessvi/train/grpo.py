@@ -131,6 +131,29 @@ def _has_cuda() -> bool:
     return bool(torch.cuda.is_available())
 
 
+ADAPTER_CONFIG_NAME = "adapter_config.json"
+
+
+def _check_adapter(adapter: Path) -> None:
+    """Khẳng định ``--adapter`` là thư mục adapter LoRA thật, trước khi nạp model.
+
+    Không kiểm thì peft coi đường dẫn local là repo id trên Hub và ném
+    ``HFValidationError`` lồng trong ``ValueError`` — đọc xong vẫn không biết
+    nguyên nhân là "chưa chạy T8". Và lúc đó model 4B đã nằm sẵn trên GPU rồi.
+    """
+    if not adapter.exists():
+        raise FileNotFoundError(
+            f"--adapter trỏ vào {adapter} nhưng thư mục không tồn tại. "
+            f"Chạy T8 (python -m chessvi.train.sft) trước, hoặc bỏ --adapter để "
+            f"RL thẳng từ base model."
+        )
+    if not (adapter / ADAPTER_CONFIG_NAME).is_file():
+        raise FileNotFoundError(
+            f"{adapter} không có {ADAPTER_CONFIG_NAME} nên không phải adapter LoRA. "
+            f"Đây là thư mục output của T8 — nếu SFT chưa chạy xong thì nó rỗng."
+        )
+
+
 def _load_model(settings: GRPOSettings, use_4bit: bool) -> Any:
     import torch  # noqa: PLC0415
     from transformers import AutoModelForCausalLM  # noqa: PLC0415
@@ -167,6 +190,11 @@ def run_grpo(settings: GRPOSettings) -> Path:
     # bf16 chỉ từ Ampere trở lên; T4 của Colab phải fp16 (xem _bf16_supported).
     use_bf16 = use_4bit and _bf16_supported()
     use_fp16 = use_4bit and not use_bf16
+
+    # Kiểm tra adapter TRƯỚC khi đụng tới dataset hay GPU: hỏng ở đây thì hỏng
+    # ngay trong một giây, thay vì sau khi đã nạp xong model 4B.
+    if settings.adapter is not None:
+        _check_adapter(settings.adapter)
 
     push = settings.push_to_hub
     if push and (hf_token() is None or settings.hub_model_id is None):

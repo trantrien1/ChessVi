@@ -6,10 +6,20 @@ Vòng train thật có acceptance riêng là smoke test ``--max-steps 5`` trên 
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
+import pytest
+
 from chessvi.data.puzzles import balanced_order
-from chessvi.train.grpo import SYSTEM_PROMPT, build_dataset_rows, build_parser, settings_from_args
+from chessvi.train.grpo import (
+    ADAPTER_CONFIG_NAME,
+    SYSTEM_PROMPT,
+    _check_adapter,
+    build_dataset_rows,
+    build_parser,
+    settings_from_args,
+)
 from tests.conftest import FEN_START
 
 
@@ -123,3 +133,32 @@ def test_co_smoke_test_tat_vllm() -> None:
     assert settings.load_in_4bit is False
     assert settings.max_steps == 5
     assert settings.limit == 16
+
+
+# -- kiểm tra adapter ------------------------------------------------------
+#
+# Cell "chạy thật" của notebook trỏ --adapter vào outputs/sft. Khi T8 chưa chạy,
+# peft coi đường dẫn local là repo id trên Hub và ném HFValidationError lồng
+# trong ValueError — đọc xong không biết nguyên nhân thật. Ba test dưới khoá
+# hành vi báo lỗi sớm và rõ.
+
+
+def test_check_adapter_thu_muc_khong_ton_tai(tmp_path: Path) -> None:
+    missing = tmp_path / "khong-co"
+    with pytest.raises(FileNotFoundError, match="không tồn tại"):
+        _check_adapter(missing)
+
+
+def test_check_adapter_thu_muc_rong_thi_bao_chua_chay_sft(tmp_path: Path) -> None:
+    """Đây là đúng tình huống thật: T8 chưa chạy nên output-dir rỗng."""
+    empty = tmp_path / "sft"
+    empty.mkdir()
+    with pytest.raises(FileNotFoundError, match=ADAPTER_CONFIG_NAME):
+        _check_adapter(empty)
+
+
+def test_check_adapter_hop_le_thi_khong_nem(tmp_path: Path) -> None:
+    adapter = tmp_path / "sft"
+    adapter.mkdir()
+    (adapter / ADAPTER_CONFIG_NAME).write_text("{}", encoding="utf-8")
+    _check_adapter(adapter)
