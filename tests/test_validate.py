@@ -43,7 +43,9 @@ def test_mau_sach_thi_pass() -> None:
 
 def test_bat_nuoc_di_khong_hop_le() -> None:
     """Tiêu chí 1: Qh8 đúng dạng SAN nhưng không đi được từ thế khởi đầu."""
-    result = validate_record(_record(answer="Nước mạnh nhất là Qh8 ngay lập tức."))
+    result = validate_record(
+        _record(answer="Nước mạnh nhất là Qh8 ngay lập tức."), strict_moves=True
+    )
     assert not result.ok
     assert RejectReason.INVALID_MOVE in result.reasons
     assert "Qh8" in " ".join(result.details)
@@ -113,7 +115,7 @@ def test_thieu_fen_hoac_fen_hong() -> None:
 
 def test_mot_mau_co_the_dinh_nhieu_ly_do() -> None:
     result = validate_record(
-        _record(answer="Qh8 tạo ra một cái nĩa <M0>.", label="Nf3")
+        _record(answer="Qh8 tạo ra một cái nĩa <M0>.", label="Nf3"), strict_moves=True
     )
     assert set(result.reasons) >= {
         RejectReason.INVALID_MOVE,
@@ -125,9 +127,34 @@ def test_mot_mau_co_the_dinh_nhieu_ly_do() -> None:
 def test_ke_lai_van_co_nhieu_nuoc_van_hop_le() -> None:
     """Nước đi theo thứ tự của một ván thật thì đều hợp lệ."""
     result = validate_record(
-        _record(answer="Sau 1. e4 e5 2. Nf3 Nc6 thì thế cân bằng.", label="e4")
+        _record(answer="Sau 1. e4 e5 2. Nf3 Nc6 thì thế cân bằng.", label="e4"),
+        strict_moves=True,
     )
     assert RejectReason.INVALID_MOVE not in result.reasons
+
+
+def test_mac_dinh_khong_loai_nuoc_o_nhanh_sau() -> None:
+    """Đúng hình dạng dữ liệu C1: lời giải thích kể theo nhánh.
+
+    Bb5 hợp lệ ở thế *vài nước sau*, không phải thế gốc. Đây chính là chỗ đã
+    loại oan 100% trong 39.601 mẫu thật, nên mặc định phải cho qua.
+    """
+    record = _record(
+        answer="Chơi Nf3, sau Nc6 thì Bb5 ghim mã.\n\nFINAL_ANSWER: g1f3",
+        label="g1f3",
+    )
+    assert validate_record(record).ok, validate_record(record).details
+    strict = validate_record(record, strict_moves=True)
+    assert RejectReason.INVALID_MOVE in strict.reasons
+
+
+def test_ten_o_trong_cau_van_khong_bi_coi_la_nuoc_di() -> None:
+    """"vua trắng ở g1" là mô tả vị trí, không phải nước tốt SAN."""
+    record = _record(
+        answer="Vua trắng ở g1, xe ở e1, mã đen ở e5. Nước tốt nhất là Nf3."
+    )
+    result = validate_record(record, strict_moves=True)
+    assert result.ok, result.details
 
 
 # -- báo cáo --------------------------------------------------------------
@@ -135,7 +162,7 @@ def test_ke_lai_van_co_nhieu_nuoc_van_hop_le() -> None:
 
 def test_bao_cao_dem_dung_va_co_ty_le() -> None:
     records = [_record(), _record(), _record(answer="Qh8 là nước duy nhất.")]
-    report = validate_dataset(records)
+    report = validate_dataset(records, strict_moves=True)
     assert report.total == 3
     assert report.passed == 2
     assert report.rejected == 1
@@ -154,7 +181,9 @@ def test_bao_cao_rong_khong_chia_cho_0() -> None:
 
 def test_ghi_mau_bi_loai_ra_jsonl(tmp_path: Path) -> None:
     out = tmp_path / "rejected.jsonl"
-    validate_dataset([_record(), _record(answer="Qh8 thôi.")], rejected_path=out)
+    validate_dataset(
+        [_record(), _record(answer="Qh8 thôi.")], rejected_path=out, strict_moves=True
+    )
     rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
     assert len(rows) == 1, "chỉ mẫu bị loại mới được ghi"
     assert str(RejectReason.INVALID_MOVE) in rows[0]["reason"]

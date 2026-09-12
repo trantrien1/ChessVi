@@ -27,7 +27,13 @@ import chess
 
 from chessvi.config import Paths
 from chessvi.data.glossary import glossary_violations
-from chessvi.data.mask import PLACEHOLDER_RE, MoveContext, find_move_tokens, parse_move
+from chessvi.data.mask import (
+    PLACEHOLDER_RE,
+    MoveContext,
+    find_move_tokens,
+    is_unambiguous_move,
+    parse_move,
+)
 from chessvi.logging_setup import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -147,11 +153,20 @@ def _texts(record: dict[str, Any], fields: Sequence[str]) -> list[str]:
 
 
 def _check_moves(texts: Sequence[str], fen: str) -> list[str]:
-    """Nước đi trong output không parse được hoặc không hợp lệ với FEN."""
+    """Nước đi trong output không parse được hoặc không hợp lệ với FEN.
+
+    Chỉ xét token **chắc chắn là nước đi**. Tên ô trần trùng hệt cú pháp với
+    nước tốt SAN, mà văn giải thích thì đầy tên ô — xét cả chúng thì "vua
+    trắng ở ô g1, xe ở e1" biến thành hai nước không hợp lệ.
+
+    Chỉ chạy khi bật ``--strict-moves``; xem :func:`validate_record`.
+    """
     bad: list[str] = []
     for text in texts:
         context = MoveContext(fen)
         for token in find_move_tokens(text):
+            if not is_unambiguous_move(token):
+                continue
             if not context.accepts(token):
                 bad.append(token.text)
     return bad
@@ -206,14 +221,25 @@ def validate_record(
     fen_field: str = DEFAULT_FEN_FIELD,
     label_field: str | None = DEFAULT_LABEL_FIELD,
     english_run_threshold: int = ENGLISH_RUN_THRESHOLD,
+    strict_moves: bool = False,
 ) -> ValidationResult:
-    """Kiểm tra một mẫu đã dịch theo 5 tiêu chí của T6.
+    """Kiểm tra một mẫu đã dịch theo 4 tiêu chí của T6.
 
-    1. Mọi nước đi trong output parse được và hợp lệ với FEN của mẫu.
-    2. Nước đi kết luận khớp với label gốc (bỏ qua nếu mẫu không có label).
-    3. Không còn placeholder sót lại (``<M0>`` lọt ra ngoài là lỗi unmask).
-    4. Output không còn khúc tiếng Anh dài (heuristic).
-    5. Thuật ngữ nhất quán với bảng glossary.
+    1. Nước đi kết luận khớp với label gốc (bỏ qua nếu mẫu không có label).
+    2. Không còn placeholder sót lại (``<M0>`` lọt ra ngoài là lỗi unmask).
+    3. Output không còn khúc tiếng Anh dài (heuristic).
+    4. Thuật ngữ nhất quán với bảng glossary.
+
+    ``strict_moves`` bật thêm tiêu chí "mọi nước đi hợp lệ với FEN của mẫu".
+    **Mặc định tắt, và đừng bật cho dữ liệu kiểu C1.** Lời giải thích của C1
+    kể theo nhánh: "chơi <M0>; nếu trắng đáp <M1> thì <M2> chiếu hết". <M2>
+    hợp lệ ở thế *sau vài nước*, không phải thế gốc, nên tiêu chí này loại nó
+    dù bản dịch hoàn toàn đúng. Đo thật trên 39.601 mẫu: bật thì loại 100%,
+    tắt thì loại 0,62% — và 0,62% đó là ``english_chunk``, tức lỗi thật.
+
+    Không mất gì khi tắt: nước đi hợp lệ với thế gốc đã được mask bảo vệ
+    nguyên văn qua bước dịch (tiêu chí 2 canh), còn nước kết luận — thứ duy
+    nhất model phải học sinh ra — thì tiêu chí 1 vẫn đối chiếu với label.
     """
     reasons: list[RejectReason] = []
     details: list[str] = []
@@ -228,10 +254,11 @@ def validate_record(
 
     texts = _texts(record, fields)
 
-    bad_moves = _check_moves(texts, fen)
-    if bad_moves:
-        reasons.append(RejectReason.INVALID_MOVE)
-        details.append("nước không hợp lệ: " + ", ".join(sorted(set(bad_moves))))
+    if strict_moves:
+        bad_moves = _check_moves(texts, fen)
+        if bad_moves:
+            reasons.append(RejectReason.INVALID_MOVE)
+            details.append("nước không hợp lệ: " + ", ".join(sorted(set(bad_moves))))
 
     label = record.get(label_field) if label_field else None
     if isinstance(label, str) and label.strip():
@@ -302,6 +329,7 @@ def validate_dataset(
     label_field: str | None = DEFAULT_LABEL_FIELD,
     rejected_path: Path | None = None,
     clean_path: Path | None = None,
+    strict_moves: bool = False,
 ) -> ValidationReport:
     """Kiểm tra cả tập, ghi mẫu bị loại ra ``rejected_path`` (JSONL).
 
@@ -318,7 +346,11 @@ def validate_dataset(
     try:
         for record in records:
             result = validate_record(
-                record, fields=fields, fen_field=fen_field, label_field=label_field
+                record,
+                fields=fields,
+                fen_field=fen_field,
+                label_field=label_field,
+                strict_moves=strict_moves,
             )
             report.add(result)
             if result.ok:
@@ -380,6 +412,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Ghi tập đã pass ra đây (thư mục parquet, hoặc file .jsonl) — đầu vào của T8",
     )
+    parser.add_argument(
+        "--strict-moves",
+        action="store_true",
+        help="Bắt mọi nước đi phải hợp lệ với FEN của mẫu. ĐỪNG bật cho C1: "
+        "lời giải thích kể theo nhánh nên nước ở nhánh sau bị loại oan (đo "
+        "thật: loại 100%%)",
+    )
     parser.add_argument("--fields", default=",".join(DEFAULT_TEXT_FIELDS))
     parser.add_argument("--fen-field", default=DEFAULT_FEN_FIELD)
     parser.add_argument("--label-field", default=DEFAULT_LABEL_FIELD)
@@ -403,6 +442,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         label_field=args.label_field or None,
         rejected_path=rejected,
         clean_path=args.out_clean,
+        strict_moves=args.strict_moves,
     )
     logger.info("%s", report.render())
     logger.info("Mẫu bị loại đã ghi ra %s", rejected)

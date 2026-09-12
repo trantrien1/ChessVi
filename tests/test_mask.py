@@ -214,3 +214,23 @@ def test_mapping_luon_anh_xa_dung_placeholder(text: str) -> None:
     for placeholder in mapping:
         assert PLACEHOLDER_RE.fullmatch(placeholder)
         assert placeholder in masked
+
+
+# -- phân biệt nước đi với tên ô ------------------------------------------
+
+
+def test_is_unambiguous_move_loai_nuoc_tot_tran() -> None:
+    """``e4`` trùng cú pháp với tên ô, mà văn giải thích cờ thì đầy tên ô."""
+    from chessvi.data.mask import find_move_tokens, is_unambiguous_move
+
+    text = "Vua trắng ở g1 và xe ở e1, nhưng Nf3 rồi e2e4 mới là nước mạnh."
+    kept = [t.text for t in find_move_tokens(text) if is_unambiguous_move(t)]
+    assert kept == ["Nf3", "e2e4"]
+
+
+def test_is_unambiguous_move_giu_nuoc_co_dac_trung() -> None:
+    from chessvi.data.mask import find_move_tokens, is_unambiguous_move
+
+    text = "Sau exd5 thì O-O và Rxe1 đều được, e2e4 cũng vậy."
+    kept = [t.text for t in find_move_tokens(text) if is_unambiguous_move(t)]
+    assert kept == ["exd5", "O-O", "Rxe1", "e2e4"]

@@ -43,6 +43,7 @@ __all__ = [
     "Token",
     "find_move_tokens",
     "find_tokens",
+    "is_unambiguous_move",
     "parse_move",
     "mask",
     "unmask",
@@ -110,6 +111,18 @@ class Token:
 def _is_bare_pawn_move(text: str) -> bool:
     """``e4`` có, ``exd5``/``Nf3``/``a8=Q`` không."""
     return re.fullmatch(_PAWN_MOVE + r"[+#]?[!?]{0,2}", text) is not None
+
+
+def is_unambiguous_move(token: Token) -> bool:
+    """Token chắc chắn là nước đi, không thể là thứ khác.
+
+    ``Nf3``, ``e2e4``, ``exd5``, ``O-O`` thì chắc chắn. ``e4`` thì **không**:
+    nước tốt SAN trùng hệt cú pháp với tên ô, mà văn giải thích cờ thì đầy tên
+    ô ("vua trắng ở h2", "các tốt f2 và h3"). Ai đối chiếu tính hợp lệ của
+    từng token đều phải lọc bằng hàm này trước, nếu không sẽ loại nhầm gần như
+    mọi mẫu.
+    """
+    return _is_strong(token)
 
 
 def _is_strong(token: Token) -> bool:
