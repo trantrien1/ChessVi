@@ -59,9 +59,21 @@ DEFAULT_FEN_FIELD = "fen"
 DEFAULT_CHECKPOINT_EVERY = 500
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_HF_MODEL = "VietAI/envit5-translation"
-#: Mặc định cho backend llm. Qwen3-14B bf16 ~28GB, vừa A100 40GB của Colab.
-#: 32B và 30B-A3B ở bf16 đều tràn; ép 4-bit thì chậm tới mức ăn hết CU.
-DEFAULT_LLM_MODEL = "Qwen/Qwen3-14B"
+#: Mặc định cho backend llm. **Cần A100 80GB.**
+#:
+#: Vì sao 30B-A3B chứ không phải 32B, dù 32B to hơn: đây là việc nghẽn ở thông
+#: lượng, không phải ở chất lượng. Ước lượng bf16 với gpu_memory_utilization
+#: 0.90 trên 80GB (72GB khả dụng, trừ ~2.5GB activation + CUDA graph):
+#:
+#:     Qwen3-32B      65.6GB weights ->  3.9GB KV  | 32.8B active/token
+#:     Qwen3-30B-A3B  61.0GB weights ->  8.5GB KV  |  3.3B active/token
+#:     Qwen3-14B      29.6GB weights -> 39.9GB KV  | 14.8B active/token
+#:
+#: 32B chỉ còn 3.9GB KV nên vLLM chạy được rất ít request song song, chậm hơn
+#: cả 14B. 30B-A3B là MoE: chất lượng cỡ 30B mà mỗi token chỉ kích hoạt 3.3B.
+#:
+#: Chỉ có A100 40GB thì dùng ``--model Qwen/Qwen3-14B``.
+DEFAULT_LLM_MODEL = "Qwen/Qwen3-30B-A3B"
 
 
 # -- backend dịch ---------------------------------------------------------
@@ -223,7 +235,10 @@ class LLMTranslator(Translator):
         self._temperature = temperature
         self._system = SYSTEM_PROMPT_VI.format(glossary=build_glossary_block())
         self._tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self._cache: dict[str, str] = {}
         self.placeholder_mismatches = 0
+        #: Số mẫu model chép nguyên đầu vào và thử lại vẫn không dịch.
+        self.echoed_inputs = 0
 
         if use_vllm:
             from vllm import LLM, SamplingParams  # noqa: PLC0415
@@ -248,10 +263,16 @@ class LLMTranslator(Translator):
                 model_name, dtype="auto", device_map="auto"
             )
 
-    def _render(self, text: str) -> str:
+    def _render(self, text: str, *, insist: bool = False) -> str:
+        content = text
+        if insist:
+            content = (
+                "DỊCH đoạn dưới sang tiếng Việt. Không chép lại nguyên văn "
+                "tiếng Anh. Chỉ xuất bản dịch tiếng Việt:\n\n" + text
+            )
         messages = [
             {"role": "system", "content": self._system},
-            {"role": "user", "content": text},
+            {"role": "user", "content": content},
         ]
         try:
             # Qwen3 mặc định bật "thinking"; tắt đi cho output sạch và nhanh hơn.
@@ -266,12 +287,33 @@ class LLMTranslator(Translator):
     def translate_batch(self, texts: Sequence[str]) -> list[str]:
         if not texts:
             return []
-        prompts = [self._render(text) for text in texts]
-        raw = self._generate(prompts)
-        return [
-            self._finalize(source, output)
-            for source, output in zip(texts, raw, strict=True)
-        ]
+
+        # Cache xuyên batch: trường `question` giống hệt ở mọi mẫu, mà khử trùng
+        # lặp trong translate_records chỉ hoạt động trong phạm vi một batch.
+        todo = [text for text in texts if text not in self._cache]
+        if todo:
+            outputs = self._generate([self._render(text) for text in todo])
+            results = [
+                self._finalize(source, output)
+                for source, output in zip(todo, outputs, strict=True)
+            ]
+
+            # Model đôi khi chép nguyên đầu vào thay vì dịch (quan sát thật:
+            # 2/20 mẫu). Nhắc lại một lần dứt khoát hơn rồi mới chịu thua.
+            echoed = [i for i, (src, out) in enumerate(zip(todo, results)) if src == out]
+            if echoed:
+                logger.warning("%d mẫu bị chép nguyên văn — thử lại", len(echoed))
+                self.echoed_inputs += len(echoed)
+                retry = self._generate([self._render(todo[i], insist=True) for i in echoed])
+                for position, output in zip(echoed, retry, strict=True):
+                    fixed = self._finalize(todo[position], output)
+                    if fixed != todo[position]:
+                        results[position] = fixed
+                        self.echoed_inputs -= 1
+
+            self._cache.update(zip(todo, results, strict=True))
+
+        return [self._cache[text] for text in texts]
 
     def _generate(self, prompts: Sequence[str]) -> list[str]:
         if self._engine is not None:

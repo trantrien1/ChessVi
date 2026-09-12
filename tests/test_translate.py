@@ -271,7 +271,23 @@ def _bare_llm_translator() -> LLMTranslator:
     """Dựng instance không chạy __init__ (init cần transformers + vLLM)."""
     translator = LLMTranslator.__new__(LLMTranslator)
     translator.placeholder_mismatches = 0
+    translator.echoed_inputs = 0
+    translator._cache = {}
     return translator
+
+
+def _stub_generation(translator: LLMTranslator, replies: list[list[str]]) -> list[list[str]]:
+    """Thay _generate bằng kịch bản dựng sẵn; trả về log các lượt gọi."""
+    calls: list[list[str]] = []
+    pending = list(replies)
+
+    def fake_generate(prompts: Sequence[str]) -> list[str]:
+        calls.append(list(prompts))
+        return pending.pop(0)
+
+    translator._render = lambda text, *, insist=False: ("INSIST:" if insist else "") + text
+    translator._generate = fake_generate
+    return calls
 
 
 def test_finalize_bo_khoi_think_cua_qwen() -> None:
@@ -345,3 +361,37 @@ def test_translate_records_khu_trung_lap_truoc_khi_goi_backend() -> None:
     assert out[1]["answer"] == "vi:Second answer."
     assert out[2]["answer"] == "vi:First answer."
     assert all(r["question"] == "vi:Find the best move." for r in out)
+
+
+def test_translate_batch_cache_xuyen_batch() -> None:
+    """Gọi lại cùng một chuỗi thì không sinh lại — `question` lặp ở mọi batch."""
+    translator = _bare_llm_translator()
+    calls = _stub_generation(translator, [["Đi <M0>."]])
+
+    first = translator.translate_batch(["Play <M0>."])
+    second = translator.translate_batch(["Play <M0>.", "Play <M0>."])
+
+    assert first == ["Đi <M0>."]
+    assert second == ["Đi <M0>.", "Đi <M0>."]
+    assert len(calls) == 1, "lượt thứ hai phải lấy từ cache"
+
+
+def test_translate_batch_thu_lai_khi_model_chep_nguyen_van() -> None:
+    """Quan sát thật: 2/20 mẫu bị Qwen trả về nguyên văn tiếng Anh."""
+    translator = _bare_llm_translator()
+    source = "White plays <M0>."
+    calls = _stub_generation(translator, [[source], ["Trắng đi <M0>."]])
+
+    assert translator.translate_batch([source]) == ["Trắng đi <M0>."]
+    assert len(calls) == 2, "phải có một lượt nhắc lại"
+    assert calls[1][0].startswith("INSIST:")
+    assert translator.echoed_inputs == 0, "thử lại thành công thì không tính là hỏng"
+
+
+def test_translate_batch_dem_lai_khi_thu_lai_van_khong_dich() -> None:
+    translator = _bare_llm_translator()
+    source = "White plays <M0>."
+    _stub_generation(translator, [[source], [source]])
+
+    assert translator.translate_batch([source]) == [source]
+    assert translator.echoed_inputs == 1

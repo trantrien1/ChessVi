@@ -57,10 +57,11 @@ T0 ──┬── T1 ── T2                              engine: Stockfish, 
 python -m chessvi.data.c1 --split sft --out data/raw/c1_sft.jsonl
 
 # dịch — luôn thử --dry-run trước và đọc tận mắt 20 cặp before/after.
-# backend llm mặc định Qwen/Qwen3-14B qua vLLM (Colab). Máy dịch phổ thông
+# backend llm mặc định Qwen/Qwen3-30B-A3B qua vLLM, cần A100 80GB
+# (40GB thì --model Qwen/Qwen3-14B). Máy dịch phổ thông
 # (--backend hf) dịch sai nặng từ vựng cờ, xem MODEL_CARD.md.
-python -m chessvi.data.translate --input-jsonl data/raw/c1_sft.jsonl     --split sft --backend llm --limit 20 --dry-run
-python -m chessvi.data.translate --input-jsonl data/raw/c1_sft.jsonl     --split sft --backend llm --resume
+python -m chessvi.data.translate --input-jsonl data/raw/c1_sft.jsonl     --split sft --backend llm --batch-size 256 --limit 20 --dry-run
+python -m chessvi.data.translate --input-jsonl data/raw/c1_sft.jsonl     --split sft --backend llm --batch-size 256 --resume
 
 # kiểm tra dữ liệu đã dịch; kỳ vọng loại 5–15%, >25% là pipeline dịch có vấn đề.
 # --out-clean ghi tập đã pass ra đĩa — đây là đầu vào của SFT.

@@ -49,6 +49,10 @@ GLOSSARY: dict[str, str] = {
     "file": "cột",
     "rank": "hàng",
     "square": "ô",
+    # Thiếu hai từ này thì Qwen dịch "queenside" thành "cánh vua" — sai bên,
+    # và đó là sai sự thật bàn cờ chứ không phải lỗi văn phong.
+    "kingside": "cánh vua",
+    "queenside": "cánh hậu",
 }
 
 #: Cách dịch sai/biến thể hay gặp -> khoá tiếng Anh tương ứng trong GLOSSARY.
