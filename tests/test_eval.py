@@ -18,13 +18,15 @@ from chessvi.eval.hallucination import (
 from chessvi.eval.hallucination import main as hallucination_main
 from chessvi.eval.predictor import EchoPredictor, Predictor, build_predictor
 from chessvi.eval.puzzle_acc import (
+    build_facts_prompt,
+    build_parser,
     build_puzzle_prompt,
     evaluate_puzzles,
     write_csv,
 )
 from chessvi.eval.puzzle_acc import main as puzzle_main
 from chessvi.train.reward import ANSWER_TEMPLATE
-from tests.conftest import FEN_IN_CHECK, FEN_START
+from tests.conftest import FEN_IN_CHECK, FEN_MATE_IN_1, FEN_START
 
 #: Thế khởi đầu, lời giải là Nf3.
 PUZZLE_A = {
@@ -92,6 +94,63 @@ def test_prompt_puzzle_co_fen_va_yeu_cau_format() -> None:
     # Chốt vào ANSWER_TEMPLATE chứ không chép lại chuỗi: nhãn lệch giữa prompt
     # và phép trích xuất là lỗi đã xảy ra một lần, đừng để nó âm thầm quay lại.
     assert ANSWER_TEMPLATE.format(move="<nước đi>") in prompt
+
+
+# -- prompt có fact: cấu hình sẽ ship -------------------------------------
+
+
+def test_prompt_co_fact_dung_lai_khoi_cua_production() -> None:
+    """Không dựng format thứ ba: eval và serving phải cùng một prompt."""
+    prompt = build_facts_prompt(FEN_IN_CHECK)
+    assert "[SỰ THẬT ĐÃ XÁC MINH" in prompt
+    assert FEN_IN_CHECK in prompt
+    assert "Đang bị chiếu: có" in prompt
+
+
+def test_prompt_co_fact_khong_lo_dap_an() -> None:
+    """``extract_facts`` không kèm engine, nếu không model chỉ việc chép lại.
+
+    Lộ ``best_move`` vào prompt là biến bài đo thành bài chép, con số sẽ vô
+    nghĩa theo chiều ngược lại với FEN trần.
+    """
+    prompt = build_facts_prompt(FEN_MATE_IN_1)
+    assert "Nước tốt nhất theo Stockfish" not in prompt
+    assert "Đánh giá của Stockfish" not in prompt
+
+
+def test_prompt_co_fact_liet_ke_du_nuoc_hop_le() -> None:
+    """Prompt dặn chỉ được nhắc nước trong danh sách; cắt danh sách là chặn trần."""
+    board = chess.Board(FEN_MATE_IN_1)
+    assert len(list(board.legal_moves)) > 20, "FEN này phải vượt mức cắt mặc định"
+    prompt = build_facts_prompt(FEN_MATE_IN_1)
+    assert "... (tổng" not in prompt
+    for move in board.legal_moves:
+        assert board.san(move) in prompt
+
+
+def test_prompt_co_fact_doi_dung_nhan_ket_luan() -> None:
+    assert ANSWER_TEMPLATE.format(move="<nước đi>") in build_facts_prompt(FEN_START)
+
+
+def test_evaluate_dung_prompt_builder_duoc_truyen() -> None:
+    predictor = EchoPredictor("FINAL_ANSWER: Nf3")
+    evaluate_puzzles([PUZZLE_A], predictor, prompt_builder=build_facts_prompt)
+    assert "[SỰ THẬT ĐÃ XÁC MINH" in predictor.prompts[0]
+
+
+def test_fen_hong_bi_bo_qua_chu_khong_giet_ca_luot() -> None:
+    """Prompt có fact parse FEN *trước khi* sinh, nên phải chặn ngay ở vòng lặp."""
+    puzzles = [{**PUZZLE_A, "puzzle_id": "hong", "fen": "khong-phai-fen"}, PUZZLE_A]
+    report = evaluate_puzzles(
+        puzzles, EchoPredictor("FINAL_ANSWER: Nf3"), prompt_builder=build_facts_prompt
+    )
+    assert report.total == 1
+
+
+def test_cli_with_facts_mac_dinh_tat() -> None:
+    """Mặc định vẫn là FEN trần để so sánh được với các lượt chạy đã có."""
+    assert build_parser().parse_args(["--puzzles", "x.parquet"]).with_facts is False
+    assert build_parser().parse_args(["--puzzles", "x.parquet", "--with-facts"]).with_facts
 
 
 # -- accuracy -------------------------------------------------------------

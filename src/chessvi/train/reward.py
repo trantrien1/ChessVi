@@ -92,26 +92,33 @@ class RewardBreakdown:
 
 
 def has_valid_format(completion: str) -> bool:
-    """Output có đúng một dòng kết luận ``Nước đi: ...``."""
+    """Output có đúng một dòng kết luận (xem :data:`ANSWER_TEMPLATE`)."""
     return len(ANSWER_RE.findall(completion)) == 1
 
 
 def extract_move(completion: str, board: chess.Board) -> chess.Move | None:
     """Lấy nước đi model đề xuất, xác thực bằng python-chess.
 
-    Ưu tiên phần nằm sau nhãn kết luận; không có thì lấy nước hợp lệ cuối cùng
-    xuất hiện trong text. Luôn đi qua :func:`~chessvi.data.mask.parse_move` nên
-    không bao giờ trả về nước không hợp lệ, dù regex có bắt nhầm gì.
+    Có nhãn kết luận thì **nhãn quyết định**: nước sau nhãn hợp lệ thì trả nó,
+    không hợp lệ thì trả ``None``. Model nói ``FINAL_ANSWER`` một nước không đi
+    được nghĩa là nó trả lời sai, và đi mò một nước hợp lệ khác trong phần văn
+    là tự chấm điểm hộ nó. Đo thật trên test set: model gần như luôn nhắc tên ô
+    trong lúc giải thích, nên đường lui cũ thổi phồng ``legal_rate`` và đôi khi
+    ăn may đúng nhờ nhắc trúng nước giải giữa một lời giải thích bịa.
+
+    Không có nhãn nào thì mới lấy nước hợp lệ cuối cùng trong text — đó là ca
+    output tự do, chưa học format.
 
     Lấy khớp **đầu tiên**, không phải khớp cuối: model chưa dừng đúng lúc sẽ
     lặp lại cả đoạn lý giải kèm nhãn, và bản lặp ở đuôi không phải kết luận nó
     thực sự đưa ra. Với output sạch thì đầu và cuối là một.
+
+    Luôn đi qua :func:`~chessvi.data.mask.parse_move` nên không bao giờ trả về
+    nước không hợp lệ, dù regex có bắt nhầm gì.
     """
     matches = ANSWER_RE.findall(completion)
     if matches:
-        move = parse_move(board, matches[0].strip().strip(".,;:)"))
-        if move is not None:
-            return move
+        return parse_move(board, matches[0].strip().strip(".,;:)"))
 
     found: chess.Move | None = None
     for token in find_move_tokens(completion):

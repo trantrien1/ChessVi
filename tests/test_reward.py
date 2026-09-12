@@ -119,10 +119,22 @@ def test_khong_bao_gio_tra_ve_nuoc_khong_hop_le() -> None:
     assert extract_move("Nước đi: Qh8", board) is None
 
 
-def test_dong_ket_luan_hong_thi_lui_ve_nuoc_hop_le_trong_than_bai() -> None:
+def test_nhan_co_ma_nuoc_khong_hop_le_thi_khong_di_mo_trong_than_bai() -> None:
+    """Nói nhãn một nước không đi được là trả lời sai, không phải trả lời thiếu.
+
+    Đường lui chỉ dành cho output **không có nhãn nào**. Đo trên test set: model
+    gần như luôn nhắc tên ô trong lúc giải thích, nên mò tiếp trong phần văn sẽ
+    thổi phồng ``legal_rate`` và đôi khi ăn may đúng giữa một lời giải bịa.
+    """
     board = chess.Board(FEN_START)
     completion = "Tôi cân nhắc Nf3.\nNước đi: Qh8"
-    assert extract_move(completion, board) == board.parse_san("Nf3")
+    assert extract_move(completion, board) is None
+
+
+def test_khong_co_nhan_thi_van_lui_ve_nuoc_trong_than_bai() -> None:
+    """Ca output tự do, chưa học format — đường lui vẫn phải chạy."""
+    board = chess.Board(FEN_START)
+    assert extract_move("Tôi cân nhắc Nf3.", board) == board.parse_san("Nf3")
 
 
 # -- lời giải và FEN hỏng -------------------------------------------------

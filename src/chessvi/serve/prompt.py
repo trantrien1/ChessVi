@@ -58,6 +58,8 @@ def build_prompt(
     facts: PositionFacts,
     user_question: str,
     history: Sequence[ChatTurn] = (),
+    *,
+    move_limit: int = 20,
 ) -> str:
     """Prompt dạng text thuần cho backend không có chat template.
 
@@ -67,7 +69,7 @@ def build_prompt(
     parts = [SYSTEM_PROMPT]
     if history:
         parts.append("[LỊCH SỬ HỘI THOẠI]\n" + _history_block(history))
-    parts.append(facts_to_prompt(facts))
+    parts.append(facts_to_prompt(facts, move_limit=move_limit))
     parts.append(f"[CÂU HỎI]\n{user_question}")
     parts.append("[TRẢ LỜI]")
     return "\n\n".join(parts)

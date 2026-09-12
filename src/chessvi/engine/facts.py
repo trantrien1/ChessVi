@@ -299,11 +299,15 @@ def _format_eval(facts: PositionFacts) -> str | None:
     return f"{pawns:+.2f} tốt theo góc nhìn {side} ({verdict})"
 
 
-def facts_to_prompt(facts: PositionFacts) -> str:
+def facts_to_prompt(facts: PositionFacts, *, move_limit: int = 20) -> str:
     """Render fact thành block tiếng Việt để nhét vào prompt.
 
     Dùng thuật ngữ trong :mod:`chessvi.data.glossary`. Block này là *sự thật
     đã xác minh*; prompt sẽ dặn model không được mâu thuẫn với nó.
+
+    ``move_limit`` cắt danh sách nước hợp lệ cho đỡ tốn token khi phục vụ.
+    Nâng lên khi cần liệt kê đủ: prompt dặn model chỉ được nhắc nước có trong
+    danh sách, nên danh sách cắt mất nước cần nói là chặn trần chính model.
     """
     side = SIDE_VI[facts.side_to_move]
     in_check_vi = "có" if facts.in_check else "không"
@@ -316,7 +320,7 @@ def facts_to_prompt(facts: PositionFacts) -> str:
         f"Quân bỏ ngỏ: {_format_hanging(facts.hanging)}",
         f"Nước ăn quân khả dụng: {_format_moves(facts.captures_available)}",
         f"Nước chiếu khả dụng: {_format_moves(facts.checks_available)}",
-        f"Nước đi hợp lệ: {_format_moves(facts.legal_moves, limit=20)}",
+        f"Nước đi hợp lệ: {_format_moves(facts.legal_moves, limit=move_limit)}",
     ]
     if facts.opening_name:
         lines.append(f"Khai cuộc: {facts.opening_name}")
