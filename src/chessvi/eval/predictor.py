@@ -112,6 +112,8 @@ class HFPredictor(Predictor):
         self._device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("Nạp %s trên %s", model_path, self._device)
         self._tokenizer = AutoTokenizer.from_pretrained(model_path)
+        if self._tokenizer.pad_token is None:
+            self._tokenizer.pad_token = self._tokenizer.eos_token
         # dtype="auto" lấy đúng dtype ghi trong config (bf16 với Qwen3). Không
         # truyền thì transformers nạp fp32: 4B thành 16GB thay vì 8GB, và chậm
         # gấp đôi mà chẳng chính xác hơn — eval chỉ đọc argmax của nước đi.
@@ -136,6 +138,46 @@ class HFPredictor(Predictor):
             )
         new_tokens = generated[0][inputs["input_ids"].shape[1] :]
         return self._tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+
+    def predict_batch(self, prompts: Sequence[str]) -> list[str]:
+        """Sinh cả batch trong **một** lời gọi ``generate``.
+
+        Chạy tuần tự là bỏ phí gần hết GPU: mỗi bước decode chủ yếu tốn công
+        đọc trọng số model từ VRAM, mà đọc một lượt thì phục vụ được cả batch.
+        8 chuỗi song song gần như cùng thời gian với 1 chuỗi. Đo trên 300
+        puzzle: tuần tự mất khoảng một tiếng.
+
+        Phải pad **bên trái**. Model decoder-only sinh tiếp từ token cuối cùng
+        của input; pad bên phải thì token cuối là ``<pad>`` và nó sinh ra rác.
+        Pad bên trái cũng làm mọi hàng có cùng độ rộng input, nên cắt phần
+        prompt ra khỏi output chỉ là một phép lát duy nhất.
+        """
+        if not prompts:
+            return []
+        import torch  # noqa: PLC0415
+
+        previous_side = self._tokenizer.padding_side
+        self._tokenizer.padding_side = "left"
+        try:
+            inputs = self._tokenizer(
+                list(prompts), return_tensors="pt", padding=True
+            ).to(self._device)
+        finally:
+            self._tokenizer.padding_side = previous_side
+
+        with torch.no_grad():
+            generated = self._model.generate(
+                **inputs,
+                max_new_tokens=self._max_new_tokens,
+                temperature=self._temperature,
+                do_sample=self._temperature > 0,
+                pad_token_id=self._tokenizer.pad_token_id,
+            )
+        width = inputs["input_ids"].shape[1]
+        return [
+            self._tokenizer.decode(row[width:], skip_special_tokens=True).strip()
+            for row in generated
+        ]
 
 
 def build_predictor(kind: str, **kwargs: Any) -> Predictor:
