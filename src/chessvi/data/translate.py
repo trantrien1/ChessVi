@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator, Sequence
@@ -25,8 +26,8 @@ from pathlib import Path
 from typing import Any
 
 from chessvi.config import Paths
-from chessvi.data.glossary import enforce_glossary
-from chessvi.data.mask import mask, unmask
+from chessvi.data.glossary import GLOSSARY, enforce_glossary
+from chessvi.data.mask import PLACEHOLDER_RE, mask, unmask
 from chessvi.logging_setup import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -34,8 +35,10 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "EchoTranslator",
     "HFTranslator",
+    "LLMTranslator",
     "TranslationJob",
     "Translator",
+    "build_glossary_block",
     "build_translator",
     "translate_record",
     "translate_records",
@@ -56,6 +59,9 @@ DEFAULT_FEN_FIELD = "fen"
 DEFAULT_CHECKPOINT_EVERY = 500
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_HF_MODEL = "VietAI/envit5-translation"
+#: Mặc định cho backend llm. Qwen3-14B bf16 ~28GB, vừa A100 40GB của Colab.
+#: 32B và 30B-A3B ở bf16 đều tràn; ép 4-bit thì chậm tới mức ăn hết CU.
+DEFAULT_LLM_MODEL = "Qwen/Qwen3-14B"
 
 
 # -- backend dịch ---------------------------------------------------------
@@ -162,13 +168,165 @@ class HFTranslator(Translator):
         return [line.removeprefix("vi: ").strip() for line in decoded]
 
 
-def build_translator(backend: str, *, model_name: str = DEFAULT_HF_MODEL) -> Translator:
+def build_glossary_block() -> str:
+    """Bảng thuật ngữ dạng text để nhét vào prompt.
+
+    Dựng từ :data:`GLOSSARY` chứ không chép tay, đúng quy định trong CLAUDE.md:
+    "Bổ sung thì thêm vào bảng này trước, không tự chế trong prompt."
+    """
+    return "\n".join(f"- {en} = {vi}" for en, vi in sorted(GLOSSARY.items()))
+
+
+SYSTEM_PROMPT_VI = """Bạn là dịch giả chuyên ngành cờ vua, dịch Anh sang Việt.
+
+QUY TẮC BẮT BUỘC:
+1. Giữ NGUYÊN VĂN mọi ký hiệu dạng <M0>, <F1>, <N2>. Không dịch, không đổi số,
+   không thêm, không bớt. Số lượng và thứ tự phải y hệt bản gốc.
+2. Giữ nguyên FINAL_ANSWER và dấu hai chấm sau nó nếu bản gốc có.
+3. Dùng đúng bảng thuật ngữ dưới đây, không dùng từ đồng nghĩa khác.
+4. Chỉ xuất bản dịch. Không lời dẫn, không giải thích, không nhắc lại bản gốc.
+
+BẢNG THUẬT NGỮ:
+{glossary}"""
+
+
+class LLMTranslator(Translator):
+    """Dịch bằng LLM instruct, prompt có sẵn bảng thuật ngữ.
+
+    Vì sao cần: model dịch phổ thông (envit5) dịch từ vựng cờ theo nghĩa đời
+    thường — rook thành "cổ tay", checkmate thành "giao phối" — và còn bịa sai
+    sự thật bàn cờ (tốt thành hậu). Một LLM đủ mạnh, được đưa thẳng bảng thuật
+    ngữ và quy tắc giữ placeholder, cho chất lượng khác hẳn.
+
+    Placeholder được kiểm lại sau khi sinh. Lệch là trả về nguyên văn bản gốc
+    chứ không trả bản dịch hỏng: mẫu tiếng Anh sẽ bị T6 loại thẳng, còn mẫu mất
+    ký hiệu cờ thì lọt qua T6 và âm thầm đầu độc tập train.
+    """
+
+    name = "llm"
+
+    def __init__(
+        self,
+        model_name: str = DEFAULT_LLM_MODEL,
+        *,
+        use_vllm: bool = True,
+        max_new_tokens: int = 1024,
+        max_input_tokens: int = 4096,
+        temperature: float = 0.0,
+        gpu_memory_utilization: float = 0.90,
+    ) -> None:
+        from transformers import AutoTokenizer  # noqa: PLC0415
+
+        self._model_name = model_name
+        self._max_new_tokens = max_new_tokens
+        self._max_input_tokens = max_input_tokens
+        self._temperature = temperature
+        self._system = SYSTEM_PROMPT_VI.format(glossary=build_glossary_block())
+        self._tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.placeholder_mismatches = 0
+
+        if use_vllm:
+            from vllm import LLM, SamplingParams  # noqa: PLC0415
+
+            logger.info("Nạp %s qua vLLM", model_name)
+            self._engine = LLM(
+                model=model_name,
+                max_model_len=max_input_tokens + max_new_tokens,
+                gpu_memory_utilization=gpu_memory_utilization,
+            )
+            self._sampling = SamplingParams(
+                temperature=temperature, max_tokens=max_new_tokens
+            )
+        else:
+            import torch  # noqa: PLC0415
+            from transformers import AutoModelForCausalLM  # noqa: PLC0415
+
+            logger.info("Nạp %s qua transformers (không vLLM — sẽ chậm)", model_name)
+            self._engine = None
+            self._torch = torch
+            self._model = AutoModelForCausalLM.from_pretrained(
+                model_name, dtype="auto", device_map="auto"
+            )
+
+    def _render(self, text: str) -> str:
+        messages = [
+            {"role": "system", "content": self._system},
+            {"role": "user", "content": text},
+        ]
+        try:
+            # Qwen3 mặc định bật "thinking"; tắt đi cho output sạch và nhanh hơn.
+            return self._tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
+            )
+        except TypeError:
+            return self._tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=True
+            )
+
+    def translate_batch(self, texts: Sequence[str]) -> list[str]:
+        if not texts:
+            return []
+        prompts = [self._render(text) for text in texts]
+        raw = self._generate(prompts)
+        return [
+            self._finalize(source, output)
+            for source, output in zip(texts, raw, strict=True)
+        ]
+
+    def _generate(self, prompts: Sequence[str]) -> list[str]:
+        if self._engine is not None:
+            outputs = self._engine.generate(list(prompts), self._sampling)
+            return [out.outputs[0].text for out in outputs]
+
+        results: list[str] = []
+        for prompt in prompts:
+            batch = self._tokenizer(
+                prompt, return_tensors="pt", truncation=True, max_length=self._max_input_tokens
+            ).to(self._model.device)
+            with self._torch.no_grad():
+                generated = self._model.generate(
+                    **batch,
+                    max_new_tokens=self._max_new_tokens,
+                    do_sample=self._temperature > 0,
+                )
+            new_tokens = generated[0][batch["input_ids"].shape[1] :]
+            results.append(self._tokenizer.decode(new_tokens, skip_special_tokens=True))
+        return results
+
+    def _finalize(self, source: str, output: str) -> str:
+        """Dọn output và từ chối bản dịch làm hỏng placeholder."""
+        cleaned = _THINK_RE.sub("", output).strip()
+        if _placeholders(cleaned) != _placeholders(source):
+            self.placeholder_mismatches += 1
+            logger.warning(
+                "Bản dịch làm lệch placeholder (%s -> %s) — giữ nguyên bản gốc",
+                _placeholders(source),
+                _placeholders(cleaned),
+            )
+            return source
+        return cleaned
+
+
+#: Qwen3 và vài model khác bọc phần suy luận trong <think>...</think>.
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def _placeholders(text: str) -> list[str]:
+    """Danh sách placeholder theo đúng thứ tự xuất hiện."""
+    return [match.group(0) for match in PLACEHOLDER_RE.finditer(text)]
+
+
+def build_translator(
+    backend: str, *, model_name: str | None = None, use_vllm: bool = True
+) -> Translator:
     """Tạo backend theo tên. Thêm backend mới thì khai báo ở đây."""
     if backend == "echo":
         return EchoTranslator()
     if backend == "hf":
-        return HFTranslator(model_name)
-    raise ValueError(f"Backend không biết: {backend!r} (có: echo, hf)")
+        return HFTranslator(model_name or DEFAULT_HF_MODEL)
+    if backend == "llm":
+        return LLMTranslator(model_name or DEFAULT_LLM_MODEL, use_vllm=use_vllm)
+    raise ValueError(f"Backend không biết: {backend!r} (có: echo, hf, llm)")
 
 
 # -- dịch ------------------------------------------------------------------
@@ -203,12 +361,22 @@ def translate_records(
             slots.append((index, name, mapping))
             masked_texts.append(masked_text)
 
-    translated = translator.translate_batch(masked_texts) if masked_texts else []
-    if len(translated) != len(masked_texts):
+    # Khử trùng lặp trước khi gọi backend. Trường `question` của C1-data giống
+    # hệt nhau ở cả 39.601 mẫu, dịch lại từng lần là đốt GPU vô ích.
+    index_of: dict[str, int] = {}
+    unique_texts: list[str] = []
+    for text in masked_texts:
+        if text not in index_of:
+            index_of[text] = len(unique_texts)
+            unique_texts.append(text)
+
+    unique_out = translator.translate_batch(unique_texts) if unique_texts else []
+    if len(unique_out) != len(unique_texts):
         raise RuntimeError(
-            f"Backend {translator.name} trả {len(translated)} kết quả cho "
-            f"{len(masked_texts)} đầu vào"
+            f"Backend {translator.name} trả {len(unique_out)} kết quả cho "
+            f"{len(unique_texts)} đầu vào"
         )
+    translated = [unique_out[index_of[text]] for text in masked_texts]
 
     out = [dict(record) for record in records]
     for (index, name, mapping), text in zip(slots, translated, strict=True):
@@ -447,8 +615,16 @@ def build_parser() -> argparse.ArgumentParser:
     source.add_argument("--input-jsonl", type=Path, help="File .jsonl local thay cho HF")
     parser.add_argument("--split", default="sft", help="Split cần dịch (mặc định: sft)")
     parser.add_argument("--limit", type=int, help="Chỉ xử lý N mẫu đầu")
-    parser.add_argument("--backend", default="echo", choices=["echo", "hf"])
-    parser.add_argument("--model", default=DEFAULT_HF_MODEL, help="Model cho backend hf")
+    parser.add_argument("--backend", default="echo", choices=["echo", "hf", "llm"])
+    parser.add_argument(
+        "--model",
+        help=f"Mặc định: {DEFAULT_HF_MODEL} cho hf, {DEFAULT_LLM_MODEL} cho llm",
+    )
+    parser.add_argument(
+        "--no-vllm",
+        action="store_true",
+        help="Backend llm chạy bằng transformers thay vì vLLM (chậm hơn nhiều)",
+    )
     parser.add_argument("--fields", help="Danh sách trường cần dịch, phân tách bằng dấu phẩy")
     parser.add_argument("--fen-field", default=DEFAULT_FEN_FIELD)
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
@@ -483,7 +659,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     out_dir = args.out_dir or (Paths().data_dir / "translated")
     job = TranslationJob(
-        translator=build_translator(args.backend, model_name=args.model),
+        translator=build_translator(
+            args.backend, model_name=args.model, use_vllm=not args.no_vllm
+        ),
         out_dir=out_dir,
         split=args.split,
         fields=tuple(args.fields.split(",")) if args.fields else None,

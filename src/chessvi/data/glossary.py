@@ -30,11 +30,49 @@ GLOSSARY: dict[str, str] = {
     "zugzwang": "zugzwang",
     "blunder": "sai lầm nghiêm trọng",
     "hanging piece": "quân bỏ ngỏ",
+    # --- Bổ sung sau khi đọc tay 20 mẫu dịch máy đầu tiên (T6) ---
+    # Máy dịch phổ thông dịch các từ này theo nghĩa đời thường, không phải nghĩa
+    # cờ vua: rook -> "cổ tay", pawn -> "sát thủ", checkmate -> "giao phối",
+    # file -> "tập tin". Đưa vào bảng để vừa ép được output vừa dựng được prompt
+    # từ một nguồn duy nhất.
+    "checkmate": "chiếu hết",
+    "stalemate": "hoà do hết nước đi",
+    "check": "chiếu",
+    "passed pawn": "tốt thông",
+    "promotion": "phong cấp",
+    "knight": "mã",
+    "bishop": "tượng",
+    "rook": "xe",
+    "queen": "hậu",
+    "king": "vua",
+    "pawn": "tốt",
+    "file": "cột",
+    "rank": "hàng",
+    "square": "ô",
 }
 
 #: Cách dịch sai/biến thể hay gặp -> khoá tiếng Anh tương ứng trong GLOSSARY.
 #: Dùng để ép nhất quán và để T6 phát hiện dữ liệu dịch lệch chuẩn.
 VARIANTS: dict[str, str] = {
+    # --- Quan sát thật từ VietAI/envit5-translation trên C1-data ---
+    # Mỗi dòng dưới đây là một cách dịch sai đã thực sự xuất hiện trong output,
+    # không phải phỏng đoán. Thêm vào đây thì T6 vừa sửa được vừa đếm được.
+    "rok": "rook",
+    "cổ tay": "rook",
+    "rào cản": "rook",
+    "sát thủ": "pawn",
+    "giám mục": "bishop",
+    "hiệp sĩ": "knight",
+    "nữ hoàng": "queen",
+    "hoàng hậu": "queen",
+    "giao phối": "checkmate",
+    "chiếu mat": "checkmate",
+    "ngã ba": "fork",
+    "tập tin": "file",
+    "tập hợp": "file",
+    "lên hạng": "promotion",
+    "thăng hạng": "promotion",
+    "tốt đi qua": "passed pawn",
     # fork
     "nĩa": "fork",
     "đòn nĩa": "fork",

@@ -12,11 +12,14 @@ from typing import Any
 import pytest
 
 from chessvi.data.glossary import glossary_violations
+from chessvi.data.glossary import GLOSSARY
 from chessvi.data.translate import (
     EchoTranslator,
+    LLMTranslator,
     TranslationJob,
     Translator,
     _load_tokenizer,
+    build_glossary_block,
     build_translator,
     translate_record,
 )
@@ -252,3 +255,93 @@ def test_load_tokenizer_khong_nuot_loi_khac(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setitem(sys.modules, "transformers", _fake_transformers(OSError("404")))
     with pytest.raises(OSError, match="404"):
         _load_tokenizer("khong-ton-tai")
+
+
+# -- backend LLM -----------------------------------------------------------
+
+
+def test_glossary_block_dung_tu_bang_chuan() -> None:
+    """Prompt phải dựng TỪ GLOSSARY, không chép tay — quy định của CLAUDE.md."""
+    block = build_glossary_block()
+    for en, vi in GLOSSARY.items():
+        assert f"- {en} = {vi}" in block
+
+
+def _bare_llm_translator() -> LLMTranslator:
+    """Dựng instance không chạy __init__ (init cần transformers + vLLM)."""
+    translator = LLMTranslator.__new__(LLMTranslator)
+    translator.placeholder_mismatches = 0
+    return translator
+
+
+def test_finalize_bo_khoi_think_cua_qwen() -> None:
+    translator = _bare_llm_translator()
+    out = translator._finalize("Play <M0>.", "<think>cân nhắc</think>Đi <M0>.")
+    assert out == "Đi <M0>."
+
+
+def test_finalize_giu_nguyen_ban_goc_khi_mat_placeholder() -> None:
+    """Mất ký hiệu cờ mà vẫn trả bản dịch thì T6 không bắt được — phải từ chối.
+
+    Trả lại bản gốc tiếng Anh để T6 loại nó vì english_chunk, thấy được.
+    """
+    translator = _bare_llm_translator()
+    source = "White plays <M0> then <M1>."
+    assert translator._finalize(source, "Trắng đi rồi đi tiếp.") == source
+    assert translator.placeholder_mismatches == 1
+
+
+def test_finalize_bat_ca_khi_placeholder_bi_doi_so() -> None:
+    translator = _bare_llm_translator()
+    source = "White plays <M0> then <M1>."
+    assert translator._finalize(source, "Trắng đi <M0> rồi <M0>.") == source
+
+
+def test_finalize_chap_nhan_khi_placeholder_khop() -> None:
+    translator = _bare_llm_translator()
+    out = translator._finalize("White plays <M0>.", "  Trắng đi <M0>.  ")
+    assert out == "Trắng đi <M0>."
+    assert translator.placeholder_mismatches == 0
+
+
+def test_backend_khong_biet_liet_ke_ca_llm() -> None:
+    with pytest.raises(ValueError, match="llm"):
+        build_translator("khong-co")
+
+
+# -- khử trùng lặp ---------------------------------------------------------
+
+
+class _CountingTranslator(Translator):
+    name = "counting"
+
+    def __init__(self) -> None:
+        self.seen: list[str] = []
+
+    def translate_batch(self, texts: Sequence[str]) -> list[str]:
+        self.seen.extend(texts)
+        return [f"vi:{text}" for text in texts]
+
+
+def test_translate_records_khu_trung_lap_truoc_khi_goi_backend() -> None:
+    """question của C1-data giống hệt ở mọi mẫu — dịch lại từng lần là đốt GPU."""
+    from chessvi.data.translate import translate_records
+
+    records = [
+        {"question": "Find the best move.", "answer": "First answer."},
+        {"question": "Find the best move.", "answer": "Second answer."},
+        {"question": "Find the best move.", "answer": "First answer."},
+    ]
+    translator = _CountingTranslator()
+    out = translate_records(records, translator, ["question", "answer"])
+
+    # 6 trường text, nhưng chỉ 3 chuỗi khác nhau.
+    assert len(translator.seen) == 3
+    assert sorted(translator.seen) == sorted(
+        {"Find the best move.", "First answer.", "Second answer."}
+    )
+    # Kết quả vẫn phải phân phối đúng về từng mẫu.
+    assert out[0]["answer"] == "vi:First answer."
+    assert out[1]["answer"] == "vi:Second answer."
+    assert out[2]["answer"] == "vi:First answer."
+    assert all(r["question"] == "vi:Find the best move." for r in out)

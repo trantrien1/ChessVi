@@ -100,7 +100,30 @@ data/        gitignored
 | blunder | sai lầm nghiêm trọng |
 | hanging piece | quân bỏ ngỏ |
 
-Bổ sung thì thêm vào bảng này trước, không tự chế trong prompt.
+Bổ sung sau khi đọc tay lứa dịch máy đầu tiên (T6). Máy dịch phổ thông dịch
+những từ này theo nghĩa đời thường chứ không phải nghĩa cờ vua — quan sát thật:
+rook → "cổ tay", pawn → "sát thủ", checkmate → "giao phối", file → "tập tin".
+
+| EN | VI |
+|---|---|
+| check | chiếu |
+| checkmate | chiếu hết |
+| stalemate | hoà do hết nước đi |
+| passed pawn | tốt thông |
+| promotion | phong cấp |
+| king | vua |
+| queen | hậu |
+| rook | xe |
+| bishop | tượng |
+| knight | mã |
+| pawn | tốt |
+| file | cột |
+| rank | hàng |
+| square | ô |
+
+Bổ sung thì thêm vào bảng này trước, không tự chế trong prompt. Prompt dịch
+được **dựng từ chính bảng này** (`build_glossary_block`), nên sửa ở đây là sửa
+cả hai nơi cùng lúc.
 
 ## Không làm
 
