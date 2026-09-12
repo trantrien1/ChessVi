@@ -23,6 +23,7 @@ from chessvi.eval.puzzle_acc import (
     write_csv,
 )
 from chessvi.eval.puzzle_acc import main as puzzle_main
+from chessvi.train.reward import ANSWER_TEMPLATE
 from tests.conftest import FEN_IN_CHECK, FEN_START
 
 #: Thế khởi đầu, lời giải là Nf3.
@@ -88,7 +89,9 @@ def test_echo_predictor_ghi_lai_prompt() -> None:
 def test_prompt_puzzle_co_fen_va_yeu_cau_format() -> None:
     prompt = build_puzzle_prompt(FEN_START)
     assert FEN_START in prompt
-    assert "Nước đi:" in prompt
+    # Chốt vào ANSWER_TEMPLATE chứ không chép lại chuỗi: nhãn lệch giữa prompt
+    # và phép trích xuất là lỗi đã xảy ra một lần, đừng để nó âm thầm quay lại.
+    assert ANSWER_TEMPLATE.format(move="<nước đi>") in prompt
 
 
 # -- accuracy -------------------------------------------------------------

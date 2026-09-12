@@ -29,6 +29,7 @@ from chessvi.data.mask import find_move_tokens, parse_move
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "ANSWER_COMPLETE_RE",
     "ANSWER_RE",
     "ANSWER_TEMPLATE",
     "REWARD_CORRECT",
@@ -36,6 +37,7 @@ __all__ = [
     "REWARD_ILLEGAL",
     "REWARD_LEGAL_BUT_WRONG",
     "RewardBreakdown",
+    "answer_is_complete",
     "extract_move",
     "has_valid_format",
     "puzzle_reward",
@@ -47,9 +49,33 @@ REWARD_LEGAL_BUT_WRONG = 0.1
 REWARD_ILLEGAL = -1.0
 REWARD_FORMAT_BONUS = 0.2
 
+#: Nhãn dòng kết luận. ``FINAL_ANSWER`` là nhãn model **đã học** ở T8: dữ liệu
+#: C1 kết thúc bằng ``FINAL_ANSWER: <uci>`` trên cả 39.355 mẫu, và `c1.py` rút
+#: nhãn bằng chính chuỗi đó. Chỗ này từng là ``Nước đi:``, nên T9 dạy model một
+#: nhãn khác T8 — và cổng T8 chấm trượt sạch: regex không khớp, ``extract_move``
+#: rơi xuống đường lui rồi bốc một tên ô bất kỳ trong phần văn.
+#: Vẫn đọc được ``Nước đi:`` làm nhãn phụ để dữ liệu và prompt cũ không chết.
+_ANSWER_LABELS = r"(?:FINAL_ANSWER|Nước đi)"
+
 #: Format bắt buộc của output: lý giải tự do, rồi đúng một dòng kết luận.
-ANSWER_TEMPLATE = "Nước đi: {move}"
-ANSWER_RE = re.compile(r"Nước đi:\s*(\S+)", re.IGNORECASE)
+ANSWER_TEMPLATE = "FINAL_ANSWER: {move}"
+ANSWER_RE = re.compile(rf"{_ANSWER_LABELS}\s*:\s*(\S+)", re.IGNORECASE)
+
+#: Dòng kết luận đã xuất **xong**: sau nước đi còn một ký tự trắng chứng minh
+#: token nước đi đã kết thúc. Bắt buộc phải có khi dùng để dừng sinh giữa dòng,
+#: vì ``FINAL_ANSWER: e2`` là tiền tố hợp lệ của ``FINAL_ANSWER: e2e4`` — dừng
+#: ở đó là chấm một nước khác hẳn nước model định nói.
+ANSWER_COMPLETE_RE = re.compile(rf"{_ANSWER_LABELS}\s*:\s*\S+\s", re.IGNORECASE)
+
+
+def answer_is_complete(text: str) -> bool:
+    """Text đã chứa trọn một dòng kết luận, kể cả ký tự kết thúc nước đi.
+
+    Dùng làm điều kiện dừng lúc sinh. Model SFT không phát EOS sau câu trả lời
+    mà lặp lại đoạn lý giải cho tới hết ``max_new_tokens``; đoạn đuôi đó vừa
+    tốn khoảng 4 lần thời gian vừa phá phép trích xuất nước đi.
+    """
+    return ANSWER_COMPLETE_RE.search(text) is not None
 
 
 @dataclass(frozen=True)
@@ -73,13 +99,17 @@ def has_valid_format(completion: str) -> bool:
 def extract_move(completion: str, board: chess.Board) -> chess.Move | None:
     """Lấy nước đi model đề xuất, xác thực bằng python-chess.
 
-    Ưu tiên phần nằm sau ``Nước đi:``; không có thì lấy nước hợp lệ cuối cùng
+    Ưu tiên phần nằm sau nhãn kết luận; không có thì lấy nước hợp lệ cuối cùng
     xuất hiện trong text. Luôn đi qua :func:`~chessvi.data.mask.parse_move` nên
     không bao giờ trả về nước không hợp lệ, dù regex có bắt nhầm gì.
+
+    Lấy khớp **đầu tiên**, không phải khớp cuối: model chưa dừng đúng lúc sẽ
+    lặp lại cả đoạn lý giải kèm nhãn, và bản lặp ở đuôi không phải kết luận nó
+    thực sự đưa ra. Với output sạch thì đầu và cuối là một.
     """
     matches = ANSWER_RE.findall(completion)
     if matches:
-        move = parse_move(board, matches[-1].strip().strip(".,;:)"))
+        move = parse_move(board, matches[0].strip().strip(".,;:)"))
         if move is not None:
             return move
 

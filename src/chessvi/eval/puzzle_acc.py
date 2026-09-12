@@ -223,6 +223,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-name", help="Tên ghi vào CSV, mặc định theo --model-path")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=512,
+        help="Trần an toàn cho backend hf. Model dừng sớm ngay khi xuất xong "
+        "dòng FINAL_ANSWER, nên trần này chỉ chặn trường hợp nó không bao giờ "
+        "kết luận. Hạ xuống ~320 nếu muốn chặn cứng thời gian chạy.",
+    )
     parser.add_argument("--out", type=Path, help="File CSV kết quả")
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
@@ -233,7 +241,12 @@ def _build(args: argparse.Namespace) -> Predictor:
         return build_predictor("echo")
     if args.backend == "gguf":
         return build_predictor("gguf", model_path=args.model_path)
-    return build_predictor("hf", model_path=args.model_path, adapter=args.adapter)
+    return build_predictor(
+        "hf",
+        model_path=args.model_path,
+        adapter=args.adapter,
+        max_new_tokens=args.max_new_tokens,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

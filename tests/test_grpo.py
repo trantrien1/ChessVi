@@ -20,6 +20,7 @@ from chessvi.train.grpo import (
     build_parser,
     settings_from_args,
 )
+from chessvi.train.reward import ANSWER_TEMPLATE
 from tests.conftest import FEN_START
 
 
@@ -92,7 +93,9 @@ def test_row_co_du_cot_cho_ham_reward() -> None:
 
 
 def test_prompt_day_model_ve_dung_format_ket_luan() -> None:
-    assert "Nước đi:" in SYSTEM_PROMPT
+    """Nhãn trong prompt T9 phải là nhãn T8 đã học, không phải nhãn thứ hai."""
+    assert ANSWER_TEMPLATE.format(move="<nước đi>") in SYSTEM_PROMPT
+    assert "FINAL_ANSWER" in SYSTEM_PROMPT
 
 
 def test_bo_qua_puzzle_thieu_fen_hoac_loi_giai() -> None:

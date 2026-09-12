@@ -10,10 +10,12 @@ import chess
 import pytest
 
 from chessvi.train.reward import (
+    ANSWER_TEMPLATE,
     REWARD_CORRECT,
     REWARD_FORMAT_BONUS,
     REWARD_ILLEGAL,
     REWARD_LEGAL_BUT_WRONG,
+    answer_is_complete,
     extract_move,
     has_valid_format,
     puzzle_reward,
@@ -183,3 +185,57 @@ def test_puzzle_reward_bo_qua_kwargs_la_cua_trl() -> None:
 def test_puzzle_reward_lech_do_dai_thi_bao_loi() -> None:
     with pytest.raises(ValueError):
         puzzle_reward(completions=["a", "b"], fen=[FEN_START], solution=[SOLUTION])
+
+
+# -- nhãn kết luận khớp với dữ liệu T8 ------------------------------------
+
+
+def test_nhan_final_answer_doc_duoc() -> None:
+    """Nhãn model thật sự xuất ra sau T8, vì C1 kết thúc bằng chuỗi này."""
+    board = chess.Board(FEN_START)
+    assert extract_move("Phát triển mã.\nFINAL_ANSWER: g1f3", board) == board.parse_san("Nf3")
+
+
+def test_template_dung_nhan_ma_t8_da_hoc() -> None:
+    """Prompt T9 phải đòi đúng format T8 đã học, không dạy nhãn thứ hai.
+
+    Lệch nhãn thì `has_valid_format` luôn False nên GRPO vĩnh viễn mất
+    ``REWARD_FORMAT_BONUS``, và cổng T8 chấm bằng đường lui thay vì bằng câu
+    trả lời của model.
+    """
+    assert ANSWER_TEMPLATE.format(move="e2e4") == "FINAL_ANSWER: e2e4"
+
+
+def test_doan_lap_o_duoi_khong_quyet_dinh_diem() -> None:
+    """Model chưa dừng đúng lúc lặp lại cả nhãn; bản lặp không phải kết luận."""
+    board = chess.Board(FEN_START)
+    completion = (
+        "Phát triển mã là tốt nhất.\nFINAL_ANSWER: g1f3\n"
+        "Phát triển mã là tốt nhất.\nFINAL_ANSWER: e2e4"
+    )
+    assert extract_move(completion, board) == board.parse_san("Nf3")
+    assert not has_valid_format(completion), "hai dòng kết luận là sai format"
+
+
+def test_has_valid_format_nhan_final_answer() -> None:
+    assert has_valid_format("Lý giải.\nFINAL_ANSWER: e2e4")
+    assert has_valid_format("Lý giải.\nfinal_answer: e2e4")
+
+
+# -- điều kiện dừng lúc sinh ----------------------------------------------
+
+
+def test_answer_is_complete_can_ky_tu_ket_thuc_nuoc_di() -> None:
+    """``e2`` là tiền tố của ``e2e4``: dừng ở đó là chấm sai nước hẳn."""
+    assert not answer_is_complete("FINAL_ANSWER: e2")
+    assert answer_is_complete("FINAL_ANSWER: e2e4\n")
+    assert answer_is_complete("FINAL_ANSWER: e2e4 còn lại")
+
+
+def test_answer_is_complete_chua_ket_luan_thi_false() -> None:
+    assert not answer_is_complete("Vua trắng ở a6 và tốt b6 tạo áp lực")
+    assert not answer_is_complete("")
+
+
+def test_answer_is_complete_nhan_ca_nhan_phu() -> None:
+    assert answer_is_complete("Nước đi: g1f3\n")

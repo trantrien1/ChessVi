@@ -81,9 +81,11 @@ class _FakeTokenizer:
 class _FakeModel:
     def __init__(self) -> None:
         self.calls = 0
+        self.last_kwargs: dict[str, Any] = {}
 
     def generate(self, **kwargs: Any) -> list[list[int]]:
         self.calls += 1
+        self.last_kwargs = kwargs
         # Phần "sinh ra" là input của chính hàng đó, đảo ngược: mỗi hàng ra một
         # kết quả khác nhau nên test bắt được lỗi lệch thứ tự, và nếu phép lát
         # bỏ sót pad thì ký tự pad sẽ lộ ra trong chuỗi trả về.
@@ -102,6 +104,8 @@ def _predictor() -> HFPredictor:
     predictor._device = "cpu"
     predictor._max_new_tokens = 16
     predictor._temperature = 0.0
+    # None = không dựng được StoppingCriteria (transformers không có ở đây).
+    predictor._stopper_factory = None
     return predictor
 
 
@@ -157,6 +161,38 @@ def test_predict_batch_mac_dinh_chay_tuan_tu() -> None:
 def test_build_predictor_backend_la_liet_ke_duoc() -> None:
     with pytest.raises(ValueError, match="echo, gguf, hf"):
         build_predictor("khong-co")
+
+
+# -- điều kiện dừng -------------------------------------------------------
+
+
+def test_stopper_nhan_dung_do_rong_prompt() -> None:
+    """Sai chỗ này là sinh ra chuỗi rỗng, không phải chậm.
+
+    ``SYSTEM_PROMPT`` của T9 được dựng từ ``ANSWER_TEMPLATE``, nên bản thân
+    prompt đã chứa ``FINAL_ANSWER: <nước đi>``. Nếu stopper soi cả prompt thì
+    nó khớp ngay bước đầu và generate dừng với 0 token mới. Phần prompt phải
+    bị cắt đúng ``prompt_width``.
+    """
+    predictor = _predictor()
+    seen: list[int] = []
+
+    def factory(tokenizer: Any, prompt_width: int) -> str:
+        seen.append(prompt_width)
+        return "stopper"
+
+    predictor._stopper_factory = factory
+    predictor.predict_batch(["abc", "de"])
+
+    assert seen == [3], "độ rộng sau khi pad trái, không phải độ dài prompt gốc"
+    assert predictor._model.last_kwargs["stopping_criteria"] == "stopper"
+
+
+def test_khong_co_stopper_thi_truyen_none() -> None:
+    """``generate`` nhận ``stopping_criteria=None`` như mặc định của nó."""
+    predictor = _predictor()
+    predictor.predict_batch(["abc"])
+    assert predictor._model.last_kwargs["stopping_criteria"] is None
 
 
 def test_predict_batch_khong_lan_pad_vao_ket_qua() -> None:

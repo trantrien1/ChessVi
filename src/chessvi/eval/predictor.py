@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
 from chessvi.config import ServeConfig
+from chessvi.train.reward import answer_is_complete
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,42 @@ __all__ = [
     "Predictor",
     "build_predictor",
 ]
+
+
+def _load_stopper_factory() -> Callable[[Any, int], Any]:
+    """Nạp transformers một lần, trả về hàm dựng điều kiện dừng cho một lô.
+
+    Import nằm trong đây chứ không ở ``predict``/``predict_batch`` vì hai hàm
+    đó được test bằng tokenizer và model giả — `tests/` phải chạy được mà
+    không cần cài transformers (CLAUDE.md: không GPU, không mạng).
+    """
+    import torch  # noqa: PLC0415
+    from transformers import StoppingCriteria, StoppingCriteriaList  # noqa: PLC0415
+
+    class _AnswerComplete(StoppingCriteria):
+        """Dừng một hàng ngay khi nó xuất xong dòng kết luận."""
+
+        def __init__(self, tokenizer: Any, prompt_width: int) -> None:
+            self._tokenizer = tokenizer
+            self._prompt_width = prompt_width
+
+        def __call__(self, input_ids: Any, scores: Any, **kwargs: Any) -> Any:
+            # BoolTensor hình (batch,): generate đóng băng riêng từng hàng đã
+            # xong, nên hàng trả lời sớm không phải chờ hàng dài nhất của lô.
+            done = [
+                answer_is_complete(
+                    self._tokenizer.decode(
+                        row[self._prompt_width :], skip_special_tokens=True
+                    )
+                )
+                for row in input_ids
+            ]
+            return torch.tensor(done, dtype=torch.bool, device=input_ids.device)
+
+    def build(tokenizer: Any, prompt_width: int) -> Any:
+        return StoppingCriteriaList([_AnswerComplete(tokenizer, prompt_width)])
+
+    return build
 
 
 class Predictor(ABC):
@@ -109,6 +146,7 @@ class HFPredictor(Predictor):
 
         self._max_new_tokens = max_new_tokens
         self._temperature = temperature
+        self._stopper_factory = _load_stopper_factory()
         self._device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("Nạp %s trên %s", model_path, self._device)
         self._tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -129,23 +167,30 @@ class HFPredictor(Predictor):
         import torch  # noqa: PLC0415
 
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._device)
+        width = inputs["input_ids"].shape[1]
         with torch.no_grad():
             generated = self._model.generate(
                 **inputs,
                 max_new_tokens=self._max_new_tokens,
                 temperature=self._temperature,
                 do_sample=self._temperature > 0,
+                stopping_criteria=self._stopping(width),
             )
-        new_tokens = generated[0][inputs["input_ids"].shape[1] :]
+        new_tokens = generated[0][width:]
         return self._tokenizer.decode(new_tokens, skip_special_tokens=True).strip()
+
+    def _stopping(self, prompt_width: int) -> Any:
+        """Điều kiện dừng cho lô hiện tại, ``None`` nếu không dựng được."""
+        if self._stopper_factory is None:
+            return None
+        return self._stopper_factory(self._tokenizer, prompt_width)
 
     def predict_batch(self, prompts: Sequence[str]) -> list[str]:
         """Sinh cả batch trong **một** lời gọi ``generate``.
 
         Chạy tuần tự là bỏ phí gần hết GPU: mỗi bước decode chủ yếu tốn công
         đọc trọng số model từ VRAM, mà đọc một lượt thì phục vụ được cả batch.
-        8 chuỗi song song gần như cùng thời gian với 1 chuỗi. Đo trên 300
-        puzzle: tuần tự mất khoảng một tiếng.
+        8 chuỗi song song gần như cùng thời gian với 1 chuỗi.
 
         Phải pad **bên trái**. Model decoder-only sinh tiếp từ token cuối cùng
         của input; pad bên phải thì token cuối là ``<pad>`` và nó sinh ra rác.
@@ -165,6 +210,7 @@ class HFPredictor(Predictor):
         finally:
             self._tokenizer.padding_side = previous_side
 
+        width = inputs["input_ids"].shape[1]
         with torch.no_grad():
             generated = self._model.generate(
                 **inputs,
@@ -172,8 +218,8 @@ class HFPredictor(Predictor):
                 temperature=self._temperature,
                 do_sample=self._temperature > 0,
                 pad_token_id=self._tokenizer.pad_token_id,
+                stopping_criteria=self._stopping(width),
             )
-        width = inputs["input_ids"].shape[1]
         return [
             self._tokenizer.decode(row[width:], skip_special_tokens=True).strip()
             for row in generated
