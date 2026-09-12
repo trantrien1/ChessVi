@@ -173,3 +173,59 @@ def test_co_smoke_test_tat_push_va_doi_model() -> None:
 def test_co_resume() -> None:
     args = build_parser().parse_args(["--data", "d", "--resume"])
     assert settings_from_args(args).resume is True
+
+
+# -- chốt quyền ghi Hub ----------------------------------------------------
+
+
+def _fake_hub(error: Exception | None) -> object:
+    """Module huggingface_hub giả, create_repo ném lỗi hoặc ghi lại lời gọi."""
+    import types
+
+    module = types.ModuleType("huggingface_hub")
+    calls: list[dict[str, object]] = []
+
+    def create_repo(repo_id: str, **kwargs: object) -> None:
+        calls.append({"repo_id": repo_id, **kwargs})
+        if error is not None:
+            raise error
+
+    module.create_repo = create_repo  # type: ignore[attr-defined]
+    module.calls = calls  # type: ignore[attr-defined]
+    return module
+
+
+def test_chot_quyen_ghi_hub_tao_repo_private(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sys
+
+    from chessvi.train.sft import _verify_push_access
+
+    hub = _fake_hub(None)
+    monkeypatch.setitem(sys.modules, "huggingface_hub", hub)
+    _verify_push_access("ai-do/chessvi-4b-sft")
+
+    (call,) = hub.calls  # type: ignore[attr-defined]
+    assert call["repo_id"] == "ai-do/chessvi-4b-sft"
+    assert call["private"] is True
+    assert call["exist_ok"] is True
+
+
+def test_chot_quyen_ghi_hub_noi_ro_ca_hai_nguyen_nhan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """403 của Hub không phân biệt token Read với namespace sai — ta phải nói."""
+    import sys
+
+    from chessvi.train.sft import _verify_push_access
+
+    monkeypatch.setitem(
+        sys.modules, "huggingface_hub", _fake_hub(PermissionError("403 Forbidden"))
+    )
+    with pytest.raises(RuntimeError) as caught:
+        _verify_push_access("ai-do/chessvi-4b-sft")
+
+    message = str(caught.value)
+    assert "403 Forbidden" in message, "giữ nguyên lỗi gốc để còn tra"
+    assert "Write" in message
+    assert "namespace" in message.lower()
+    assert "--no-push" in message

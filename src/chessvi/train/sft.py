@@ -121,6 +121,35 @@ def _lora_targets(config: Any) -> str | list[str]:
     return "all-linear"
 
 
+def _verify_push_access(hub_model_id: str) -> None:
+    """Chốt quyền ghi Hub **trước** khi tốn công nạp dữ liệu và model.
+
+    ``Trainer`` chỉ tạo repo lúc dựng, tức sau khi đã tokenize xong cả tập và
+    nạp xong base model — vài phút cho 4B, lâu hơn nhiều cho 30B. Mà token chỉ
+    có quyền đọc thì kể cả qua được chỗ đó cũng chết lần nữa ở lần lưu
+    checkpoint đầu tiên, vì ``hub_strategy="checkpoint"`` đẩy mỗi ``save_steps``.
+
+    Hai kiểu hỏng hay gặp, thông điệp của Hub giống hệt nhau nên phải nói rõ cả
+    hai: namespace không phải account của token, và token là loại Read.
+    """
+    from huggingface_hub import create_repo  # noqa: PLC0415
+
+    try:
+        create_repo(hub_model_id, private=True, exist_ok=True, token=hf_token())
+    except Exception as error:  # noqa: BLE001 - hub ném nhiều kiểu lỗi khác nhau
+        raise RuntimeError(
+            f"Không tạo hoặc ghi được repo {hub_model_id!r} trên Hugging Face.\n"
+            f"  {type(error).__name__}: {error}\n"
+            "Hai nguyên nhân thường gặp:\n"
+            "  1. Token là loại Read. Tạo token Write ở "
+            "huggingface.co/settings/tokens rồi đặt lại HF_TOKEN.\n"
+            "  2. Namespace không phải account của token. Phần trước dấu '/' "
+            "phải là tên account Hugging Face, không phải tên GitHub.\n"
+            "Chỉ muốn lưu vào --output-dir, không push: thêm --no-push."
+        ) from error
+    logger.info("Repo Hub %s sẵn sàng", hub_model_id)
+
+
 def _build_model(settings: SFTSettings, use_4bit: bool) -> Any:
     import torch  # noqa: PLC0415
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training  # noqa: PLC0415
@@ -240,6 +269,8 @@ def run_sft(settings: SFTSettings) -> Path:
     if push and settings.hub_model_id is None:
         logger.warning("Không có --hub-model-id — tắt push_to_hub")
         push = False
+    if push:
+        _verify_push_access(str(settings.hub_model_id))
 
     examples = load_examples(
         settings.data, limit=settings.limit, system_prompt=settings.system_prompt
