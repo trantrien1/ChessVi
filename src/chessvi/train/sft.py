@@ -60,7 +60,6 @@ class SFTSettings:
     #: None = tự quyết theo việc máy có GPU hay không.
     load_in_4bit: bool | None = None
     resume: bool = False
-    #: Gom chuỗi dài gần nhau vào cùng batch để bớt pad. Xem :func:`_log_lengths`.
 
 
 # -- phụ thuộc nặng, import lười ------------------------------------------
@@ -90,7 +89,11 @@ def _bf16_supported() -> bool:
 
 
 def _compute_dtype() -> Any:
-    """dtype tính toán khi quantize 4-bit: bf16 nếu GPU đỡ được, không thì fp16."""
+    """dtype tính toán: bf16 nếu GPU đỡ được, không thì fp16.
+
+    Dùng cho mọi cấu hình, không riêng 4-bit: nạp fp32 rồi train dưới
+    autocast bf16 vừa tốn gấp đôi VRAM vừa chậm gấp mấy lần.
+    """
     import torch  # noqa: PLC0415
 
     return torch.bfloat16 if _bf16_supported() else torch.float16
@@ -152,11 +155,15 @@ def _verify_push_access(hub_model_id: str) -> None:
 
 
 def _build_model(settings: SFTSettings, use_4bit: bool) -> Any:
-    import torch  # noqa: PLC0415
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training  # noqa: PLC0415
     from transformers import AutoModelForCausalLM  # noqa: PLC0415
 
-    kwargs: dict[str, Any] = {"dtype": _compute_dtype() if use_4bit else torch.float32}
+    # bf16/fp16 ở CẢ HAI nhánh. Từng là float32 khi không quantize, và đó là
+    # bẫy: TrainingArguments bật bf16 nên autocast vẫn tính bằng bf16, nhưng
+    # phải ép kiểu trọng số fp32 ở mỗi matmul — forward, lần tính lại của
+    # gradient checkpointing, rồi backward. Đo trên Qwen3-14B: 262 s/step thay
+    # vì ~90, và 59.6GB trọng số thay vì 28GB nên phải hạ batch xuống một nửa.
+    kwargs: dict[str, Any] = {"dtype": _compute_dtype()}
     if use_4bit:
         from transformers import BitsAndBytesConfig  # noqa: PLC0415
 
