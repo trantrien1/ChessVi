@@ -16,7 +16,12 @@ from typing import Any
 
 import pytest
 
-from chessvi.eval.predictor import EchoPredictor, HFPredictor, build_predictor
+from chessvi.eval.predictor import (
+    EchoPredictor,
+    HFPredictor,
+    _same_base_model,
+    build_predictor,
+)
 
 
 def _fake_torch() -> types.ModuleType:
@@ -193,6 +198,21 @@ def test_khong_co_stopper_thi_truyen_none() -> None:
     predictor = _predictor()
     predictor.predict_batch(["abc"])
     assert predictor._model.last_kwargs["stopping_criteria"] is None
+
+
+# -- adapter phải khớp base model ----------------------------------------
+
+
+def test_adapter_khac_kich_thuoc_base_thi_khong_khop() -> None:
+    """4B hidden 2560, 14B hidden 5120 — ghép nhầm là tường size mismatch."""
+    assert not _same_base_model("Qwen/Qwen3-4B", "Qwen/Qwen3-14B")
+    assert not _same_base_model("Qwen/Qwen3-14B", "Qwen/Qwen3-4B")
+
+
+def test_ban_copy_local_cua_cung_model_van_khop() -> None:
+    """Đừng chặn nhầm người trỏ vào bản đã tải sẵn về đĩa."""
+    assert _same_base_model("Qwen/Qwen3-4B", "/content/models/Qwen3-4B")
+    assert _same_base_model("Qwen/Qwen3-4B", "qwen/qwen3-4b")
 
 
 def test_predict_batch_khong_lan_pad_vao_ket_qua() -> None:

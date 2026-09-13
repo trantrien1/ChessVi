@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 
 from chessvi.config import ServeConfig
@@ -24,7 +24,38 @@ __all__ = [
     "HFPredictor",
     "Predictor",
     "build_predictor",
+    "check_adapter_base",
 ]
+
+
+def _same_base_model(trained_on: str, model_path: str) -> bool:
+    """So theo tên cuối đường dẫn, nên bản copy local của cùng model vẫn khớp.
+
+    ``Qwen/Qwen3-4B`` và ``/content/models/Qwen3-4B`` là một; ``Qwen3-4B`` và
+    ``Qwen3-14B`` thì không.
+    """
+    return PurePath(trained_on).name.lower() == PurePath(model_path).name.lower()
+
+
+def check_adapter_base(model_path: str, adapter: str) -> None:
+    """Adapter LoRA chỉ ghép được vào đúng base model đã train ra nó.
+
+    LoRA là hai ma trận cộng thẳng vào trọng số có hình dạng cụ thể: 4B có
+    hidden 2560, 14B có 5120. Ghép nhầm thì peft ném ra một bức tường
+    ``size mismatch`` dài hàng trăm dòng — *sau khi* đã tải xong vài chục GB.
+    Kiểm ở đây tốn một file JSON và hỏng thì hỏng trong vài giây.
+    """
+    from peft import PeftConfig  # noqa: PLC0415
+
+    trained_on = PeftConfig.from_pretrained(adapter).base_model_name_or_path
+    if not trained_on or _same_base_model(trained_on, model_path):
+        return
+    raise ValueError(
+        f"Adapter {adapter!r} được train trên base model {trained_on!r}, "
+        f"không phải {model_path!r}.\n"
+        "LoRA không chuyển được sang model khác kích thước — phải train lại.\n"
+        f"Sửa: --model-path {trained_on}"
+    )
 
 
 def _load_stopper_factory() -> Callable[[Any, int], Any]:
@@ -148,6 +179,10 @@ class HFPredictor(Predictor):
         self._temperature = temperature
         self._stopper_factory = _load_stopper_factory()
         self._device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        # Kiểm TRƯỚC khi nạp base: sai model thì phải tải vài chục GB rồi mới
+        # chết bằng một bức tường size mismatch dài hàng trăm dòng.
+        if adapter is not None:
+            check_adapter_base(model_path, adapter)
         logger.info("Nạp %s trên %s", model_path, self._device)
         self._tokenizer = AutoTokenizer.from_pretrained(model_path)
         if self._tokenizer.pad_token is None:
