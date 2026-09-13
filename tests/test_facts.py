@@ -120,6 +120,33 @@ def test_opening_name_lay_bien_sau_nhat_khi_ra_khoi_sach() -> None:
     assert extract_facts(board).opening_name == "Khai cuộc Tây Ban Nha (Ruy Lopez)"
 
 
+def test_opening_name_tu_fen_roi_di_tiep_van_tra_cuu_duoc() -> None:
+    """Đúng cách web demo tạo board: mỗi request mang FEN rồi đi thêm một nước."""
+    board = chess.Board("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1")
+    board.push(chess.Move.from_uci("c7c5"))
+    assert extract_facts(board).opening_name == "Phòng thủ Sicilia"
+
+
+def test_opening_name_khong_no_khi_quan_da_tien_len() -> None:
+    """Hồi quy: board từ FEN giữa ván, quân đi từ ô trống ở thế khởi đầu.
+
+    ``move_stack`` khi đó chỉ chứa nước sau FEN chứ không phải cả ván. Đi lại
+    từ thế khởi đầu chuẩn thì ``e4`` trống, và ``Board.push`` ném
+    AssertionError ngay giữa ``extract_facts`` — xa hẳn chỗ gây ra.
+
+    Hai điều kiện phải có cùng lúc, thiếu một là test xanh nhầm:
+
+    1. Thế phải **ngoài sách**. Trong sách thì ``_lookup_opening`` trả về ngay
+       ở dòng tra cứu đầu và không bao giờ chạm vòng replay.
+    2. Ô xuất phát phải **trống ở thế khởi đầu**. ``push`` chỉ khẳng định ô
+       xuất phát có quân, không khẳng định nước hợp lệ — đi từ ô đang có quân
+       thì nó push bừa mà không kêu.
+    """
+    board = chess.Board("rnbqkbnr/1ppppppp/p7/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2")
+    board.push(chess.Move.from_uci("e4e5"))
+    assert extract_facts(board).opening_name is None
+
+
 def test_opening_name_none_khi_khong_biet() -> None:
     assert _facts(FEN_HANGING_KNIGHT).opening_name is None
 

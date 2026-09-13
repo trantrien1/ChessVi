@@ -144,6 +144,21 @@ def test_di_mot_nuoc_qua_http(base_url: str) -> None:
     assert data["turn"] == "black"
 
 
+def test_di_nhieu_nuoc_lien_tiep(base_url: str) -> None:
+    """Hồi quy: quân đã tiến lên rồi đi tiếp, ở thế ngoài sách khai cuộc.
+
+    Mỗi request dựng board mới từ FEN, nên ``move_stack`` chỉ có một nước. Chừng
+    nào nước đó xuất phát từ ô còn quân ở thế khởi đầu thì không lộ gì — phải
+    để một quân tiến lên rồi đi tiếp mới thấy.
+    """
+    fen = FEN_START
+    for src, dst in (("e2", "e4"), ("a7", "a6"), ("e4", "e5")):
+        status, data = _post(f"{base_url}/api/move", {"fen": fen, "from": src, "to": dst})
+        assert status == 200, data
+        fen = data["fen"]
+    assert data["last_move"] == "e5"
+
+
 def test_nuoc_khong_hop_le_tra_400_chu_khong_sap_server(base_url: str) -> None:
     status, data = _post(f"{base_url}/api/move", {"fen": FEN_START, "from": "e2", "to": "e5"})
     assert status == 400

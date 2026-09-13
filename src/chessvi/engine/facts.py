@@ -162,13 +162,19 @@ def _lookup_opening(board: chess.Board, book: Mapping[str, str]) -> str | None:
 
     Nếu ``board`` còn giữ ``move_stack`` thì đi lại từ đầu để bắt được cả
     trường hợp thế hiện tại đã vượt ra ngoài sách.
+
+    Đi lại từ ``board.root()`` chứ **không** phải từ thế khởi đầu chuẩn. Board
+    dựng từ FEN giữa ván rồi push thêm nước thì ``move_stack`` chỉ chứa các
+    nước sau FEN đó; đem chúng push lên thế khởi đầu là nước không hợp lệ và
+    python-chess ném AssertionError. Đây đúng là cách web demo tạo board: mỗi
+    request mang theo FEN rồi đi tiếp một nước.
     """
     name = book.get(board.epd())
     if name is not None:
         return name
     if not board.move_stack:
         return None
-    replay = chess.Board()
+    replay = board.root()
     deepest: str | None = None
     for move in board.move_stack:
         replay.push(move)
