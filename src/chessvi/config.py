@@ -70,7 +70,12 @@ class EngineConfig:
 
 @dataclass(frozen=True)
 class ServeConfig:
-    """Tham số inference local. 4GB VRAM thật — luôn GGUF Q4, ctx <= 4096."""
+    """Tham số cho đường inference GGUF. 4GB VRAM thật — Q4, ctx <= 4096.
+
+    Chỉ chi phối backend GGUF. Chatbot đã chuyển sang 14B chạy trên máy có GPU
+    (lý do và số đo trong CLAUDE.md), nên các tham số ở đây không còn là trần
+    của cả hệ thống — chúng là trần của bản chạy local.
+    """
 
     gguf_path: Path = field(default_factory=lambda: Path(_env("GGUF_PATH", "models/chessvi-q4_k_m.gguf")))
     n_ctx: int = 4096

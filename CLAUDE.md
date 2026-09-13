@@ -27,7 +27,8 @@ không "tiện tay dọn dẹp". Một task một mối quan tâm.
 
 | Chạy ở đâu | Cái gì |
 |---|---|
-| Local (RTX 3050 Ti, 4GB) | engine layer, data pipeline, eval harness, serving, inference Q4 |
+| Local (RTX 3050 Ti, 4GB) | engine layer, data pipeline, eval harness |
+| Máy phục vụ có GPU | serving chatbot |
 | Colab Pro (100 CU/tháng) | SFT, RLVR |
 | Kaggle (30h/tuần free) | dịch dữ liệu, eval batch |
 
@@ -36,7 +37,24 @@ không "tiện tay dọn dẹp". Một task một mối quan tâm.
 `--dry-run` hoàn tất không lỗi. Không bao giờ báo "đã train xong".
 
 VRAM local chỉ 4GB thật (không phải 12GB như dxdiag hiển thị — 8GB kia là shared
-memory, tràn vào đó sẽ chậm 10–50x). Mọi inference local phải là GGUF Q4 + ctx ≤ 4096.
+memory, tràn vào đó sẽ chậm 10–50x). Thứ gì còn chạy local thì vẫn phải là
+GGUF Q4 + ctx ≤ 4096.
+
+**Serving không còn chạy local.** Đo trên 100 puzzle, cùng prompt có fact và
+cùng luật trích xuất, chỉ khác base model:
+
+| Model | Accuracy | Nước hợp lệ |
+|---|---|---|
+| Qwen3-4B SFT | 12% | 51% |
+| Qwen3-14B SFT | 35% | 87% |
+
+4B không dùng được khối `[SỰ THẬT ĐÃ XÁC MINH]` kể cả khi được đưa tận tay — nó
+vi phạm danh sách nước hợp lệ một nửa số lần. Đây là năng lực tăng theo kích
+thước model, không sửa được bằng prompt. Mà 14B Q4_K_M ≈ 9GB, không thể nhét
+vào 4GB.
+
+Nên chatbot bám 14B và chạy trên máy có GPU. Backend GGUF vẫn giữ: nó là đường
+chạy 4B và là thứ để so sánh baseline.
 
 ## Stack
 
