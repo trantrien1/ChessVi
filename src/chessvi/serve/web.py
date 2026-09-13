@@ -187,6 +187,9 @@ def _make_handler(bot: _Bot) -> type[BaseHTTPRequestHandler]:
         def _read_json(self) -> dict[str, Any]:
             length = int(self.headers.get("Content-Length") or 0)
             if length > MAX_BODY:
+                # Không hút nữa thì phần còn lại sẽ bị đọc thành request sau;
+                # đóng kết nối là cách duy nhất thoát sạch.
+                self.close_connection = True
                 raise ValueError("Request quá lớn")
             raw = self.rfile.read(length) if length else b"{}"
             data = json.loads(raw or b"{}")
@@ -221,12 +224,21 @@ def _make_handler(bot: _Bot) -> type[BaseHTTPRequestHandler]:
                 "/api/move": self._player_move,
                 "/api/ai": self._ai_move,
             }
+            # Đọc hết body TRƯỚC khi phân nhánh, kể cả khi sắp trả 404. Bỏ dở
+            # body trên kết nối keep-alive thì phần thừa bị đọc thành request
+            # tiếp theo, và client nhận ConnectionAborted thay vì mã lỗi.
+            try:
+                data = self._read_json()
+            except ValueError as error:
+                self._send_json({"error": str(error)}, status=400)
+                return
+
             handler = routes.get(self.path)
             if handler is None:
                 self._send_json({"error": "Không có endpoint này"}, status=404)
                 return
             try:
-                handler(self._read_json())
+                handler(data)
             except ValueError as error:
                 # Nước không hợp lệ, FEN hỏng, body sai — lỗi của người gọi.
                 self._send_json({"error": str(error)}, status=400)

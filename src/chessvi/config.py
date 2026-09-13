@@ -12,9 +12,61 @@ logger = logging.getLogger(__name__)
 
 _ENV_PREFIX = "CHESSVI_"
 
+#: Gốc repo, để tìm `.env` kể cả khi chạy từ thư mục khác.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def _env(name: str, default: str) -> str:
     return os.environ.get(_ENV_PREFIX + name, default)
+
+
+def _parse_dotenv(text: str) -> dict[str, str]:
+    """Đọc nội dung `.env` thành dict. Tách riêng để test không cần file thật."""
+    values: dict[str, str] = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        line = line.removeprefix("export ").lstrip()
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip()
+        if not key:
+            continue
+        # Nháy bao quanh là cách viết đường dẫn có dấu cách, không phải nội dung.
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        values[key] = value
+    return values
+
+
+def load_dotenv(path: Path | None = None, *, override: bool = False) -> int:
+    """Nạp biến môi trường từ `.env`. Trả về số biến thật sự được đặt.
+
+    Tìm theo thứ tự: ``path`` chỉ định, `.env` ở thư mục đang chạy, rồi `.env`
+    ở gốc repo. Lấy file đầu tiên tồn tại.
+
+    Biến môi trường thật **thắng** file (trừ khi ``override``): đặt
+    ``CHESSVI_STOCKFISH_BIN`` ngay ở shell là đè được `.env` mà không phải sửa
+    file — quan trọng khi chạy CI hay khi thử nhanh một binary khác.
+    """
+    candidates = [path] if path is not None else [Path.cwd() / ".env", _REPO_ROOT / ".env"]
+    source = next((p for p in candidates if p is not None and p.is_file()), None)
+    if source is None:
+        return 0
+
+    count = 0
+    for key, value in _parse_dotenv(source.read_text(encoding="utf-8")).items():
+        if override or key not in os.environ:
+            os.environ[key] = value
+            count += 1
+    logger.debug("Nạp %d biến từ %s", count, source)
+    return count
+
+
+# Nạp ngay khi import: `Paths` và bạn bè đọc os.environ lúc **khởi tạo**, nên
+# chỉ cần .env vào trước lần `Paths()` đầu tiên. Làm ở đây thì mọi CLI đều được
+# hưởng mà không phải nhớ gọi thêm một hàm.
+load_dotenv()
 
 
 @dataclass(frozen=True)
