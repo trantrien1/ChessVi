@@ -159,15 +159,20 @@ def _check_moves(texts: Sequence[str], fen: str) -> list[str]:
     nước tốt SAN, mà văn giải thích thì đầy tên ô — xét cả chúng thì "vua
     trắng ở ô g1, xe ở e1" biến thành hai nước không hợp lệ.
 
+    Vẫn cho token mờ đi qua ngữ cảnh dù không xét: chúng là mắt xích của biến,
+    bỏ hẳn thì ``c4 dxc4`` thành ``dxc4`` mồ côi và bị kết tội oan. Cùng một
+    lỗi với :func:`chessvi.serve.guard.check_output`.
+
     Chỉ chạy khi bật ``--strict-moves``; xem :func:`validate_record`.
     """
     bad: list[str] = []
     for text in texts:
         context = MoveContext(fen)
         for token in find_move_tokens(text):
+            accepted = context.accepts(token)
             if not is_unambiguous_move(token):
                 continue
-            if not context.accepts(token):
+            if not accepted:
                 bad.append(token.text)
     return bad
 

@@ -111,11 +111,13 @@ def test_guard_co_y_khong_soi_nuoc_tot_tran() -> None:
 
     ``a5`` trùng hệt cú pháp với tên ô, mà văn giải thích cờ tiếng Việt thì đầy
     tên ô: "xe trên e1", "tốt ở d5". Soi cả chúng thì đo trên model thật là
-    chặn **100%** câu trả lời, vì một tên ô bị nhận nhầm còn bị đẩy lên bàn
-    ngữ cảnh của ``MoveContext`` và kéo theo mọi nước thật phía sau thành sai.
+    chặn **100%** câu trả lời.
 
     Đổi lại: model bịa một nước tốt trần sẽ lọt tới người dùng. Bảng fact cạnh
     đó vẫn liệt kê nước hợp lệ nên người đọc còn đối chiếu được.
+
+    Không soi **không có nghĩa là bỏ qua**: chúng vẫn đi qua ngữ cảnh để mở
+    nhánh — xem test_guard_cho_qua_nuoc_an_sau_nuoc_tot_tran.
     """
     board = chess.Board(FEN_START)
     assert check_output("Cứ đi a5.", board).violations == ()
@@ -140,6 +142,54 @@ def test_guard_bat_nuoc_sai_giua_mot_bien() -> None:
     # e4/e5 là nước tốt trần nên không nằm trong `checked`; xem
     # test_guard_co_y_khong_soi_nuoc_tot_tran.
     assert "Qh8" in result.checked
+
+
+def test_guard_cho_qua_nuoc_an_sau_nuoc_tot_tran() -> None:
+    """Nước tốt trần không bị soi, nhưng vẫn phải mở nhánh cho nước sau nó.
+
+    ``dxc4`` chỉ hợp lệ sau khi ``c4`` đã đi. Bỏ hẳn ``c4`` khỏi ngữ cảnh thì
+    ``dxc4`` mồ côi và bị kết tội oan — mọi câu trả lời Gambit Hậu đều dính.
+    """
+    board = chess.Board()
+    board.push_san("d4")
+    board.push_san("d5")
+    assert check_output("Trắng đi c4, đen đáp dxc4.", board).violations == ()
+
+
+def test_guard_cho_qua_cau_tra_loi_re_nhanh() -> None:
+    """Đo trên model thật: đây là câu bị chặn cả 3 lượt sinh lại."""
+    board = chess.Board()
+    board.push_san("d4")
+    board.push_san("d5")
+    text = (
+        "Trắng nên chơi c4, tức Gambit Hậu. Đen có thể nhận bằng dxc4, hoặc từ "
+        "chối bằng e6 rồi sau 3.cxd5 exd5 về thế Exchange. Nếu đen giữ tốt "
+        "bằng b5 thì 3.a4 bxc4 và trắng mở cột a."
+    )
+    assert check_output(text, board).violations == ()
+
+
+def test_guard_van_bat_nuoc_bia_giua_cac_nhanh() -> None:
+    """Cây biến rộng ra, nhưng nước không nhánh nào đỡ vẫn phải bị bắt."""
+    board = chess.Board()
+    board.push_san("d4")
+    board.push_san("d5")
+    text = "Trắng chơi c4. Sau dxc4 thì 3.e4 chiếm trung tâm, còn Rh4 thì hỏng."
+    assert check_output(text, board).violations == ("Rh4",)
+
+
+def test_guard_bao_nham_khi_van_luoc_nuoc() -> None:
+    """Giới hạn đã biết, ghi ra chứ không giấu.
+
+    Câu này lược mất ``c4`` ở đầu biến, nên cây không thể tới thế có tốt trắng
+    trên c4 và ``bxc4`` bị kết tội oan. Không có cách nào đoán nước bị lược.
+    Hậu quả nhẹ: model còn 2 lượt sinh lại để diễn đạt đủ hơn.
+    """
+    board = chess.Board()
+    board.push_san("d4")
+    board.push_san("d5")
+    result = check_output("Nếu đen chơi b5 thì a4 bxc4 rồi b3 mở cột.", board)
+    assert result.violations == ("bxc4",)
 
 
 def test_bat_100_phan_tram_nuoc_khong_hop_le() -> None:

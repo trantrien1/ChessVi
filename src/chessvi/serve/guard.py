@@ -43,26 +43,28 @@ def check_output(text: str, board: chess.Board) -> GuardResult:
     đang chạy nếu câu trả lời đang kể một biến theo thứ tự (``1.e4 e5 2.Nf3``).
     Mọi thứ còn lại là vi phạm.
 
-    Chỉ soi token **chắc chắn là nước đi**. Nước tốt trần (``d5``, ``e6``) trùng
-    hệt cú pháp với tên ô, mà văn giải thích cờ tiếng Việt thì đầy tên ô — "xe
-    trên e1", "tốt ở d5". Soi cả chúng thì hỏng theo hai tầng: báo nhầm gần như
-    mọi câu, và tệ hơn, ``MoveContext`` **đẩy** nước lên bàn đang chạy mỗi khi
-    nhận, nên một tên ô bị nhận nhầm làm lệch ngữ cảnh và kéo theo những nước
-    thật phía sau cũng thành sai.
+    Chỉ **kết tội** token chắc chắn là nước đi. Nước tốt trần (``c4``, ``e6``)
+    trùng hệt cú pháp với tên ô, mà văn giải thích cờ tiếng Việt thì đầy tên ô —
+    "xe trên e1", "tốt ở d5" — nên soi chúng là báo nhầm gần như mọi câu.
+
+    Nhưng vẫn phải **đưa chúng qua ngữ cảnh**. Nước tốt trần là mắt xích của
+    biến: bỏ qua hẳn ``c4`` thì cây không bao giờ tới thế sau ``c4``, và
+    ``dxc4`` ngay sau đó bị kết tội oan. Đúng câu trả lời Gambit Hậu nào cũng
+    dính. Nhận hay không cũng mở nhánh; chỉ là không tính vào vi phạm.
 
     Cái giá: model bịa một nước tốt trần (``chơi e5`` khi e5 không đi được) sẽ
-    lọt. Đổi lại guard mới dùng được — trước khi lọc, nó chặn 100% câu trả lời
-    và người dùng không bao giờ nhận được lời giải thích nào.
+    lọt. Nước có chữ quân, nước ăn quân và UCI vẫn bị soi đủ.
     """
     context = MoveContext(board.fen())
     violations: list[str] = []
     checked: list[str] = []
     # require_chess_context=False: thà bắt nhầm còn hơn để lọt nước bịa.
     for token in find_move_tokens(text, require_chess_context=False):
+        accepted = context.accepts(token)  # gọi cả với token mờ: để mở nhánh
         if not is_unambiguous_move(token):
             continue
         checked.append(token.text)
-        if not context.accepts(token):
+        if not accepted:
             violations.append(token.text)
     if violations:
         logger.warning("Guard bắt được nước không hợp lệ: %s", violations)

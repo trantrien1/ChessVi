@@ -10,11 +10,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import chess
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from chessvi.data.mask import PLACEHOLDER_RE, find_tokens, mask, unmask
+from chessvi.data.mask import (
+    PLACEHOLDER_RE,
+    MoveContext,
+    Token,
+    find_tokens,
+    mask,
+    unmask,
+)
 from tests.conftest import FEN_START
 
 CORPUS_PATH = Path(__file__).parent / "fixtures" / "c1_sample.txt"
@@ -159,6 +167,32 @@ def test_context_fen_cho_phep_ke_lai_van_co_theo_thu_tu() -> None:
         "e4",
         "e5",
     ]
+
+
+def test_context_fen_cho_phep_bien_re_nhanh() -> None:
+    """Văn cờ rẽ nhánh: "sau c4, đen có dxc4 hoặc e6" là hai nhánh một thế.
+
+    Một bàn cờ đang chạy duy nhất chỉ đi được một nhánh; mọi nhánh sau đó bị
+    loại oan. Đây đúng là case làm guard chặn sạch câu trả lời Gambit Hậu.
+    """
+    board = chess.Board()
+    board.push_san("d4")
+    board.push_san("d5")
+    text = "c4 dxc4, hoặc c4 e6 rồi cxd5 exd5, hoặc c4 b5 a4 bxc4"
+    _masked, mapping = mask(text, context_fen=board.fen())
+    for san in ("dxc4", "cxd5", "exd5", "bxc4"):
+        assert san in mapping.values(), f"{san} bị loại oan"
+
+
+def test_context_fen_chan_so_nhanh() -> None:
+    """Cây biến có trần: cây càng rộng thì nước bịa càng dễ hợp lệ ở đâu đó.
+
+    ``max_lines=1`` là trường hợp cực đoan - chỉ còn thế gốc - nên nước thứ hai
+    của một biến không còn thế nào để bám vào.
+    """
+    context = MoveContext(FEN_START, max_lines=1)
+    assert context.accepts(Token(0, 2, "e4", "san"))
+    assert not context.accepts(Token(3, 5, "e5", "san"))
 
 
 def test_context_fen_nhan_nuoc_tot_tran_ma_khong_can_ngu_canh_khac() -> None:

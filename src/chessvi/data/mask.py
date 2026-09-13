@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "FEN_RE",
+    "MAX_VARIATION_LINES",
     "MOVE_NUMBER_RE",
     "PLACEHOLDER_RE",
     "SAN_RE",
@@ -185,17 +186,51 @@ def parse_move(board: chess.Board, text: str) -> chess.Move | None:
     return move if move in board.legal_moves else None
 
 
+#: Trần số thế cờ giữ trong cây biến của :class:`MoveContext`.
+MAX_VARIATION_LINES = 32
+
+
 class MoveContext:
     """Xác thực token bằng FEN ngữ cảnh.
 
-    Chấp nhận một nước khi nó hợp lệ với thế *đang chạy* (văn bản đang kể lại
-    một ván theo thứ tự - nhận xong thì đẩy nước đó lên bàn), hoặc hợp lệ với
-    thế *gốc* (văn bản đang nhắc tới một phương án khác từ cùng thế cờ).
+    Giữ một **cây biến**, không phải một ván đơn. Văn giải thích cờ luôn rẽ
+    nhánh - "sau c4, đen có dxc4 hoặc e6, còn nếu b5 thì a4" - nên một bàn cờ
+    đang chạy duy nhất không biểu diễn nổi. Với một bàn duy nhất, nhánh thứ hai
+    trở đi bị kết tội oan toàn bộ.
+
+    Một nước được nhận khi hợp lệ với **bất kỳ** thế nào đã tới được (thế gốc,
+    hoặc thế sinh ra từ các nước đã nhận trước đó). Nhận xong thì thế mới được
+    thêm vào cây. Thử thế mới nhất trước, thế gốc sau cùng, để văn kể tuần tự
+    vẫn đi đúng đường.
+
+    Cây bị chặn ở ``max_lines`` thế: cây càng rộng thì càng dễ có nước bịa vô
+    tình hợp lệ ở một nhánh nào đó. Đầy thì bỏ nhánh cũ nhất, thế gốc giữ lại.
+
+    Trần 32 chọn theo số đo, trên thế sau 1.d4 d5 với 307 ký hiệu có chữ quân
+    không hợp lệ, chèn vào một câu giải thích Gambit Hậu dài có rẽ nhánh:
+
+        trần   bắt được nước bịa   câu đúng bị báo nhầm
+           2               95.8%                      5
+           8               93.8%                      1
+          16               89.6%                      1
+          32               89.3%                      1
+          64               89.3%                      1
+
+    Từ 12 trở lên đường cong phẳng, nên trần thấp chỉ mua thêm báo nhầm. Trong
+    câu ngắn một nước ("Nên đi Qh5") thì vẫn bắt đủ **100%** - cây chưa kịp
+    rộng. Phần 10% lọt ở câu dài phần lớn là nước hợp lệ thật trong một biến mà
+    chính câu đó vừa dựng ra, không phải nước bịa.
+
+    Giới hạn còn lại: văn **lược** nước. "Nếu đen chơi b5 thì a4 bxc4" bỏ mất
+    ``c4`` ở đầu, nên không thế nào tới được ``bxc4`` và nó bị kết tội oan.
+    Không có cách nào biết nước bị lược là nước gì.
     """
 
-    def __init__(self, context_fen: str) -> None:
+    def __init__(self, context_fen: str, *, max_lines: int = MAX_VARIATION_LINES) -> None:
         self._origin = chess.Board(context_fen)
-        self._running = self._origin.copy()
+        self._reachable = [self._origin]
+        self._seen = {self._origin.epd()}
+        self._max_lines = max(1, max_lines)
 
     def accepts(self, token: Token) -> bool:
         if token.kind == "movenum":
@@ -209,14 +244,35 @@ class MoveContext:
         return self._accepts_move(token.text)
 
     def _accepts_move(self, text: str) -> bool:
-        for board, push in ((self._running, True), (self._origin, False)):
-            move = parse_move(board, text)
-            if move is None:
-                continue
-            if push:
-                self._running.push(move)
-            return True
-        return False
+        """Mở nhánh ở **mọi** thế mà nước này hợp lệ, không chỉ thế gần nhất.
+
+        Một ký hiệu như ``b5`` thường hợp lệ ở nhiều nhánh, và không cách nào
+        biết văn bản đang nói nhánh nào. Chọn đại một nhánh là hỏng: ``b5``
+        bám nhầm vào nhánh vừa ăn mất tốt c4 thì ``bxc4`` ngay sau đó không
+        còn thế nào để hợp lệ, và bị kết tội oan.
+        """
+        found = [
+            (board, move)
+            for board in reversed(self._reachable)
+            if (move := parse_move(board, text)) is not None
+        ]
+        for board, move in found:
+            self._extend(board, move)
+        return bool(found)
+
+    def _extend(self, board: chess.Board, move: chess.Move) -> None:
+        """Thêm thế sau ``move`` vào cây, trừ khi đã có."""
+        nxt = board.copy(stack=False)
+        nxt.push(move)
+        key = nxt.epd()
+        if key in self._seen:
+            return
+        if len(self._reachable) >= self._max_lines:
+            if len(self._reachable) < 2:
+                return  # trần bằng 1: chỉ còn chỗ cho thế gốc
+            self._seen.discard(self._reachable.pop(1).epd())  # thế gốc ở lại
+        self._reachable.append(nxt)
+        self._seen.add(key)
 
 
 def find_tokens(
