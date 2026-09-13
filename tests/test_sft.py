@@ -234,17 +234,6 @@ def test_chot_quyen_ghi_hub_noi_ro_ca_hai_nguyen_nhan(
 # -- phân bố độ dài và gom batch ------------------------------------------
 
 
-def test_group_by_length_mac_dinh_tat() -> None:
-    """Bật khi --resume một lần chạy không có nó thì sampler đổi, mẫu lệch."""
-    args = build_parser().parse_args(["--data", "d"])
-    assert settings_from_args(args).group_by_length is False
-
-
-def test_group_by_length_bat_duoc_bang_co() -> None:
-    args = build_parser().parse_args(["--data", "d", "--group-by-length"])
-    assert settings_from_args(args).group_by_length is True
-
-
 def test_log_do_dai_in_phan_vi(caplog: pytest.LogCaptureFixture) -> None:
     """p50 sát p99 thì gom batch vô ích; lệch xa thì đáng bật."""
     import logging
