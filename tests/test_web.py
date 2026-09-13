@@ -11,15 +11,22 @@ import threading
 import urllib.error
 import urllib.request
 from collections.abc import Iterator
+from contextlib import contextmanager
 from http.server import ThreadingHTTPServer
 from typing import Any
 
 import chess
 import pytest
 
+from chessvi.config import ServeConfig
+from chessvi.serve.chat import LocalLLM
+from chessvi.serve.colab_api import build_parser as colab_parser
+from chessvi.serve.colab_api import extract_prompt
 from chessvi.serve.web import (
+    _Analyst,
     _Bot,
     _make_handler,
+    build_llm,
     build_parser,
     build_state,
     parse_move,
@@ -102,11 +109,14 @@ def test_state_kem_khoi_fact_tho() -> None:
 # -- HTTP -----------------------------------------------------------------
 
 
-@pytest.fixture
-def base_url() -> Iterator[str]:
-    """Server thật trên cổng tự chọn. Opponent mở engine lười nên chưa tốn gì."""
+@contextmanager
+def _running(llm: LocalLLM | None) -> Iterator[str]:
+    """Server thật trên cổng tự chọn. Engine mở lười nên chưa tốn gì."""
     bot = _Bot(allow_stockfish_fallback=True)
-    server = ThreadingHTTPServer(("127.0.0.1", 0), _make_handler(bot))
+    analyst = _Analyst()
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0), _make_handler(bot, analyst, llm, ServeConfig())
+    )
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -115,6 +125,27 @@ def base_url() -> Iterator[str]:
         server.shutdown()
         server.server_close()
         bot.close()
+        analyst.close()
+
+
+@pytest.fixture
+def base_url() -> Iterator[str]:
+    with _running(None) as url:
+        yield url
+
+
+class _FakeLLM(LocalLLM):
+    """Trả lần lượt các câu đã dựng sẵn, ghi lại prompt và nhiệt độ."""
+
+    def __init__(self, *answers: str) -> None:
+        self.answers = list(answers)
+        self.prompts: list[str] = []
+        self.temperatures: list[float] = []
+
+    def generate(self, prompt: str, *, temperature: float) -> str:
+        self.prompts.append(prompt)
+        self.temperatures.append(temperature)
+        return self.answers[min(len(self.prompts) - 1, len(self.answers) - 1)]
 
 
 def _post(url: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -202,3 +233,117 @@ def test_cli_mac_dinh_cho_stockfish_thay_maia() -> None:
     """Demo phải đi được trên máy chưa tải binary Maia."""
     assert build_parser().parse_args([]).strict_maia is False
     assert build_parser().parse_args(["--strict-maia"]).strict_maia is True
+
+
+# -- chatbot --------------------------------------------------------------
+
+
+def test_chua_bat_chatbot_thi_bao_503_kem_cach_bat(base_url: str) -> None:
+    status, data = _post(f"{base_url}/api/explain", {"fen": FEN_START})
+    assert status == 503
+    assert "--llm remote" in data["error"], "báo lỗi phải nói luôn cách sửa"
+
+
+def test_giai_thich_tra_ve_cau_tra_loi() -> None:
+    llm = _FakeLLM("Trắng nên phát triển quân. Nf3 là nước tự nhiên.")
+    with _running(llm) as url:
+        status, data = _post(f"{url}/api/explain", {"fen": FEN_START})
+    assert status == 200
+    assert data["answer"].startswith("Trắng nên phát triển")
+    assert data["question"]
+
+
+def test_prompt_gui_cho_model_co_khoi_fact() -> None:
+    """Nguyên tắc 1: model chỉ được diễn giải fact, không tự suy trạng thái."""
+    llm = _FakeLLM("Nước Nf3 phát triển mã.")
+    with _running(llm) as url:
+        _post(f"{url}/api/explain", {"fen": FEN_START, "question": "Nên đi gì?"})
+    prompt = llm.prompts[0]
+    assert "[SỰ THẬT ĐÃ XÁC MINH" in prompt
+    assert FEN_START in prompt
+    assert "Nên đi gì?" in prompt
+
+
+def test_nuoc_bia_bi_guard_chan_roi_lui_ve_fact() -> None:
+    """Model bịa nước không hợp lệ thì thà trả lời khô khan mà đúng."""
+    llm = _FakeLLM("Hãy chơi Qh8, nước đó thắng ngay.")
+    with _running(llm) as url:
+        status, data = _post(f"{url}/api/explain", {"fen": FEN_START})
+
+    assert status == 200
+    assert "Qh8" not in data["answer"], "câu bịa không được lọt ra ngoài"
+    assert "dữ kiện đã xác minh" in data["answer"]
+    assert len(llm.prompts) == 3, "sinh lần đầu + 2 lần sinh lại"
+    assert llm.temperatures[0] < llm.temperatures[-1], "nhiệt độ phải tăng dần"
+    assert "LƯU Ý" in llm.prompts[1], "lần sinh lại phải kèm lời nhắc"
+
+
+def test_cau_tra_loi_sach_thi_khong_sinh_lai() -> None:
+    llm = _FakeLLM("Nước Nf3 phát triển mã và kiểm soát trung tâm.")
+    with _running(llm) as url:
+        _post(f"{url}/api/explain", {"fen": FEN_START})
+    assert len(llm.prompts) == 1
+
+
+# -- build_llm ------------------------------------------------------------
+
+
+def test_build_llm_none_tra_ve_none() -> None:
+    assert build_llm("none") is None
+
+
+def test_build_llm_remote_thieu_api_base_thi_bao_ngay() -> None:
+    with pytest.raises(ValueError, match="--api-base"):
+        build_llm("remote")
+
+
+def test_build_llm_backend_la_liet_ke_duoc() -> None:
+    with pytest.raises(ValueError, match="none, remote, gguf"):
+        build_llm("khong-co")
+
+
+# -- endpoint phía Colab --------------------------------------------------
+
+
+class _FakeTokenizer:
+    """Ghi lại messages nhận được, trả chuỗi dễ kiểm."""
+
+    def __init__(self) -> None:
+        self.seen: list[Any] = []
+
+    def apply_chat_template(
+        self, turns: Any, *, tokenize: bool, add_generation_prompt: bool
+    ) -> str:
+        self.seen.append(turns)
+        assert tokenize is False
+        assert add_generation_prompt is True
+        return "|".join(f"{t['role']}:{t['content']}" for t in turns)
+
+
+def test_extract_prompt_dung_chat_template_cua_model() -> None:
+    """T8 tokenize bằng apply_chat_template, nên nối chuỗi tay là sai khuôn."""
+    tokenizer = _FakeTokenizer()
+    prompt = extract_prompt(
+        [{"role": "system", "content": "luật"}, {"role": "user", "content": "hỏi"}],
+        tokenizer,
+    )
+    assert prompt == "system:luật|user:hỏi"
+    assert len(tokenizer.seen) == 1
+
+
+def test_extract_prompt_bo_phan_tu_khong_phai_dict() -> None:
+    tokenizer = _FakeTokenizer()
+    assert extract_prompt([{"role": "user", "content": "a"}, "rác"], tokenizer) == "user:a"
+
+
+def test_extract_prompt_messages_rong_thi_bao_loi() -> None:
+    with pytest.raises(ValueError, match="rỗng"):
+        extract_prompt([], _FakeTokenizer())
+
+
+def test_colab_api_cli_co_mac_dinh_hop_ly() -> None:
+    args = colab_parser().parse_args(["--model-path", "Qwen/Qwen3-14B"])
+    assert args.port == 8001
+    # Phải nghe mọi interface, không thì tunnel không vào được.
+    assert args.host == "0.0.0.0"  # noqa: S104
+    assert args.adapter is None

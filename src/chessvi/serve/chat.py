@@ -31,7 +31,7 @@ from chessvi.serve.prompt import ChatTurn, build_prompt
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["ChatSession", "LlamaCppLLM", "LocalLLM", "main"]
+__all__ = ["ChatSession", "LlamaCppLLM", "LocalLLM", "RemoteLLM", "main"]
 
 
 class LocalLLM(ABC):
@@ -75,6 +75,65 @@ class LlamaCppLLM(LocalLLM):
 
     def close(self) -> None:
         self._llama.close()
+
+
+class RemoteLLM(LocalLLM):
+    """Model chạy ở máy khác, gọi qua API kiểu OpenAI.
+
+    Đường này tồn tại vì chatbot bám Qwen3-14B (lý do và số đo trong CLAUDE.md)
+    mà 14B không nhét vừa 4GB VRAM. Bất cứ thứ gì nói giao thức đó đều cắm
+    được: vLLM, llama.cpp server, LM Studio, Ollama, hay một Colab mở tunnel.
+
+    Dùng ``urllib`` của thư viện chuẩn nên không thêm phụ thuộc nào.
+
+    ``api_base`` là gốc có kèm ``/v1``, ví dụ ``http://localhost:8001/v1``.
+    """
+
+    def __init__(
+        self,
+        api_base: str,
+        model: str,
+        *,
+        api_key: str | None = None,
+        config: ServeConfig | None = None,
+        timeout: float = 120.0,
+    ) -> None:
+        self._url = api_base.rstrip("/") + "/chat/completions"
+        self._model = model
+        self._api_key = api_key
+        self._config = config or ServeConfig()
+        self._timeout = timeout
+        logger.info("Chatbot gọi %s (model %s)", self._url, model)
+
+    def generate(self, prompt: str, *, temperature: float) -> str:
+        import json  # noqa: PLC0415
+        import urllib.error  # noqa: PLC0415
+        import urllib.request  # noqa: PLC0415
+
+        # Gửi cả prompt làm một lượt user. Prompt do build_prompt dựng đã chứa
+        # sẵn phần hệ thống, và server bên kia sẽ bọc nó bằng chat template của
+        # chính model — đúng khuôn model đã học ở T8.
+        payload = {
+            "model": self._model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": self._config.max_tokens,
+        }
+        headers = {"Content-Type": "application/json"}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+        request = urllib.request.Request(
+            self._url, data=json.dumps(payload).encode("utf-8"), headers=headers
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+                body = json.loads(response.read())
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode("utf-8", "replace")[:500]
+            raise RuntimeError(f"Model trả lỗi {error.code}: {detail}") from error
+        except OSError as error:
+            raise RuntimeError(f"Không gọi được {self._url}: {error}") from error
+        return str(body["choices"][0]["message"]["content"]).strip()
 
 
 class ChatSession:

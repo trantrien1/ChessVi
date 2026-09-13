@@ -9,9 +9,14 @@ HTTP sang lời gọi hàm, nên đổi sang FastAPI sau này là thay mỗi ph�
 Trạng thái ván **không** giữ ở server: mỗi request mang theo FEN. Nhờ vậy
 không cần session, mở nhiều tab không đá nhau, và restart server không mất ván.
 
-Phần LLM chưa nối vào đây. Bảng bên phải hiển thị đúng khối
-``[SỰ THẬT ĐÃ XÁC MINH]`` mà chatbot sẽ nhận — xem được nguyên tắc 1 đang làm
-gì trước khi có model, và sau này chỉ việc thêm một ô "giải thích".
+Bảng bên phải hiển thị đúng khối ``[SỰ THẬT ĐÃ XÁC MINH]`` mà chatbot nhận,
+nên nhìn được bằng mắt model được cho biết những gì — và chỉ những gì đó.
+
+Chatbot bật bằng ``--llm``. Model 14B không nhét vừa 4GB VRAM nên đường
+thường dùng là ``--llm remote``: model chạy trên Colab (xem
+``notebooks/serve_colab.ipynb``), web chạy ở máy mình, nối nhau qua HTTP. Trình
+duyệt không gọi thẳng sang Colab — chính server này gọi, nên không vướng CORS
+và URL Colab không lộ ra trang web.
 """
 
 from __future__ import annotations
@@ -19,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -26,14 +32,21 @@ from typing import Any
 
 import chess
 
+from chessvi.config import Paths, ServeConfig
 from chessvi.engine.facts import PositionFacts, extract_facts, facts_to_prompt
 from chessvi.engine.opponent import Opponent
+from chessvi.engine.stockfish import StockfishEngine
 from chessvi.logging_setup import configure_logging
+from chessvi.serve.chat import LlamaCppLLM, LocalLLM, RemoteLLM
+from chessvi.serve.guard import guarded_generate
+from chessvi.serve.prompt import build_prompt
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "DEFAULT_ELO",
+    "DEFAULT_QUESTION",
+    "build_llm",
     "build_parser",
     "build_state",
     "main",
@@ -43,6 +56,15 @@ __all__ = [
 
 STATIC_DIR = Path(__file__).parent / "static"
 DEFAULT_ELO = 1500
+
+#: Hỏi gì khi người dùng bấm nút mà không gõ gì.
+DEFAULT_QUESTION = "Phân tích ngắn gọn thế cờ này và cho biết bên đang đi nên chơi nước nào."
+
+#: Thêm vào prompt sau mỗi lần guard chặn. Giống hệt `ChatSession.ask`.
+RETRY_HINT = (
+    "\nLƯU Ý: câu trả lời trước có nước đi không hợp lệ. "
+    "Chỉ dùng nước trong danh sách nước đi hợp lệ ở trên."
+)
 #: FEN dài nhất cũng dưới 100 byte; lớn hơn mức này là request rác.
 MAX_BODY = 8 * 1024
 
@@ -163,7 +185,76 @@ class _Bot:
             self._opponent.close()
 
 
-def _make_handler(bot: _Bot) -> type[BaseHTTPRequestHandler]:
+class _Analyst:
+    """Tính fact cho chatbot, kèm eval Stockfish nếu máy có binary.
+
+    Bảng bên phải bàn cờ dùng ``extract_facts`` trần vì nó chạy sau **mỗi**
+    nước; chỗ này mới gọi engine, và chỉ khi người dùng hỏi. Eval và nước tốt
+    nhất là fact đắt nhất nhưng cũng là fact làm lời giải thích có giá trị.
+
+    Thiếu Stockfish thì vẫn trả fact, chỉ là không có eval — chatbot được dặn
+    nói thẳng là không biết thay vì đoán (quy tắc 3 trong SYSTEM_PROMPT).
+    """
+
+    def __init__(self) -> None:
+        self._engine: StockfishEngine | None = None
+        self._unavailable = False
+        self._lock = threading.Lock()
+
+    def facts(self, board: chess.Board) -> PositionFacts:
+        with self._lock:
+            return extract_facts(board, engine=self._get_engine())
+
+    def _get_engine(self) -> StockfishEngine | None:
+        if self._unavailable:
+            return None
+        if self._engine is None:
+            binary = Paths().resolve_stockfish()
+            if binary is None:
+                self._unavailable = True
+                logger.warning(
+                    "Không có Stockfish — fact sẽ thiếu eval và nước tốt nhất; "
+                    "đặt CHESSVI_STOCKFISH_BIN"
+                )
+                return None
+            self._engine = StockfishEngine(binary).__enter__()
+        return self._engine
+
+    def close(self) -> None:
+        with self._lock:
+            if self._engine is not None:
+                self._engine.close()
+                self._engine = None
+
+
+def build_llm(
+    kind: str,
+    *,
+    api_base: str | None = None,
+    api_model: str = "chessvi",
+    api_key: str | None = None,
+    gguf: Path | None = None,
+    config: ServeConfig | None = None,
+) -> LocalLLM | None:
+    """Dựng backend chatbot, hoặc ``None`` khi chạy không có chatbot."""
+    if kind == "none":
+        return None
+    if kind == "remote":
+        if not api_base:
+            raise ValueError("--llm remote cần --api-base, ví dụ https://xxx.trycloudflare.com/v1")
+        return RemoteLLM(api_base, api_model, api_key=api_key, config=config)
+    if kind == "gguf":
+        path = gguf or (config or ServeConfig()).gguf_path
+        return LlamaCppLLM(Path(path), config)
+    raise ValueError(f"Backend không biết: {kind!r} (có: none, remote, gguf)")
+
+
+def _make_handler(
+    bot: _Bot,
+    analyst: _Analyst,
+    llm: LocalLLM | None,
+    config: ServeConfig,
+) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         server_version = "chessvi"
 
@@ -223,6 +314,7 @@ def _make_handler(bot: _Bot) -> type[BaseHTTPRequestHandler]:
                 "/api/new": self._new_game,
                 "/api/move": self._player_move,
                 "/api/ai": self._ai_move,
+                "/api/explain": self._explain,
             }
             # Đọc hết body TRƯỚC khi phân nhánh, kể cả khi sắp trả 404. Bỏ dở
             # body trên kết nối keep-alive thì phần thừa bị đọc thành request
@@ -272,6 +364,41 @@ def _make_handler(bot: _Bot) -> type[BaseHTTPRequestHandler]:
             board.push(move)
             self._send_json(build_state(board, san))
 
+        def _explain(self, data: dict[str, Any]) -> None:
+            if llm is None:
+                self._send_json(
+                    {
+                        "error": "Chưa bật chatbot. Chạy lại server với "
+                        "--llm remote --api-base <url>/v1"
+                    },
+                    status=503,
+                )
+                return
+
+            board = self._board_from(data)
+            question = str(data.get("question") or "").strip() or DEFAULT_QUESTION
+            facts = analyst.facts(board)
+
+            def generate(attempt: int) -> str:
+                prompt = build_prompt(facts, question)
+                if attempt:
+                    prompt += RETRY_HINT
+                return llm.generate(prompt, temperature=config.temperature + 0.1 * attempt)
+
+            # guarded_generate xác thực mọi nước đi model nhắc tới, sinh lại khi
+            # bắt được nước sai, và cuối cùng lùi về câu trả lời chỉ gồm fact.
+            # Thà khô khan mà đúng còn hơn trôi chảy mà bịa.
+            answer = guarded_generate(
+                generate, board, facts, max_regenerations=config.max_regenerations
+            )
+            self._send_json(
+                {
+                    "question": question,
+                    "answer": answer,
+                    "facts_block": facts_to_prompt(facts),
+                }
+            )
+
     return Handler
 
 
@@ -280,11 +407,17 @@ def serve(
     port: int = 8000,
     *,
     allow_stockfish_fallback: bool = True,
+    llm: LocalLLM | None = None,
+    config: ServeConfig | None = None,
 ) -> None:
-    """Chạy server cho tới khi Ctrl+C. Đóng engine trong ``finally``."""
+    """Chạy server cho tới khi Ctrl+C. Đóng engine và model trong ``finally``."""
+    settings = config or ServeConfig()
     bot = _Bot(allow_stockfish_fallback=allow_stockfish_fallback)
-    server = ThreadingHTTPServer((host, port), _make_handler(bot))
+    analyst = _Analyst()
+    server = ThreadingHTTPServer((host, port), _make_handler(bot, analyst, llm, settings))
     logger.info("Mở http://%s:%d", host, port)
+    if llm is None:
+        logger.info("Chatbot chưa bật — xem --llm. Bàn cờ và bảng fact vẫn chạy.")
     if allow_stockfish_fallback:
         logger.info(
             "Thiếu binary Maia thì dùng Stockfish yếu thay — đi được nhưng "
@@ -297,6 +430,9 @@ def serve(
     finally:
         server.server_close()
         bot.close()
+        analyst.close()
+        if llm is not None:
+            llm.close()
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -312,6 +448,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Không cho Stockfish yếu thay Maia ở mức Elo thấp. Đúng hơn về "
         "độ 'giống người', nhưng máy chưa có binary Maia thì sẽ không đi được.",
     )
+    parser.add_argument(
+        "--llm",
+        default="none",
+        choices=["none", "remote", "gguf"],
+        help="Backend chatbot. 'remote' gọi một API kiểu OpenAI — dùng khi model "
+        "chạy ở Colab (xem notebooks/serve_colab.ipynb). 'gguf' chạy local, chỉ "
+        "hợp với bản 4B vì 14B Q4 đã ~9GB.",
+    )
+    parser.add_argument("--api-base", help="Gốc API kèm /v1, vd https://xxx.trycloudflare.com/v1")
+    parser.add_argument("--api-model", default="chessvi", help="Tên model gửi kèm request")
+    parser.add_argument(
+        "--api-key",
+        default=os.environ.get("CHESSVI_API_KEY"),
+        help="Mặc định lấy từ CHESSVI_API_KEY. Tunnel Colab thì thường không cần.",
+    )
+    parser.add_argument("--gguf", type=Path, help="File GGUF cho --llm gguf")
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
 
@@ -319,7 +471,26 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     configure_logging(args.verbose)
-    serve(args.host, args.port, allow_stockfish_fallback=not args.strict_maia)
+    config = ServeConfig()
+    try:
+        llm = build_llm(
+            args.llm,
+            api_base=args.api_base,
+            api_model=args.api_model,
+            api_key=args.api_key,
+            gguf=args.gguf,
+            config=config,
+        )
+    except (ValueError, FileNotFoundError) as error:
+        logger.error("%s", error)
+        return 2
+    serve(
+        args.host,
+        args.port,
+        allow_stockfish_fallback=not args.strict_maia,
+        llm=llm,
+        config=config,
+    )
     return 0
 
 

@@ -126,6 +126,26 @@ pre {
   background: color-mix(in srgb, var(--warn) 12%, transparent);
   border: 1px solid var(--warn); color: var(--warn); font-size: 13px;
 }
+/* -- trợ lý -- */
+#assistant {
+  margin-top: 20px; padding: 14px 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+#assistant h2 {
+  margin: 0 0 10px; font-size: 12px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+#ask { display: flex; gap: 8px; flex-wrap: wrap; }
+#q {
+  flex: 1 1 260px; min-width: 0; font: inherit; padding: 7px 12px;
+  border-radius: 7px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink);
+}
+#q:focus { outline: 2px solid var(--pick); outline-offset: -1px; }
+#asked { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+#answer { margin: 6px 0 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+#answer.waiting { color: var(--muted); font-style: italic; }
+#answer.fail { color: var(--warn); }
 footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
 </style>
 </head>
@@ -173,7 +193,18 @@ footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
   </div>
 </div>
 
-<footer>Đối thủ: Maia theo Elo, Stockfish ở mức cao. Chatbot giải thích chưa nối vào demo này.</footer>
+<section id="assistant">
+  <h2>Trợ lý</h2>
+  <form id="ask">
+    <input id="q" placeholder="Hỏi về thế cờ này… (để trống thì nhờ phân tích chung)"
+           autocomplete="off">
+    <button type="submit" id="askBtn">Hỏi</button>
+  </form>
+  <p id="asked" hidden></p>
+  <p id="answer" hidden></p>
+</section>
+
+<footer>Đối thủ: Maia theo Elo, Stockfish ở mức cao. Mọi nước đi trong câu trả lời đều được đối chiếu lại với bàn cờ trước khi hiện ra.</footer>
 
 </div>
 
@@ -364,6 +395,43 @@ document.getElementById("new").addEventListener("click", async () => {
     apply(await call("/api/new"));
   } catch (error) {
     showError(error.message);
+  }
+});
+
+// -- trợ lý --------------------------------------------------------------
+
+const askForm = document.getElementById("ask");
+const askBtn = document.getElementById("askBtn");
+const qEl = document.getElementById("q");
+const askedEl = document.getElementById("asked");
+const answerEl = document.getElementById("answer");
+
+function paintAnswer(text, kind) {
+  answerEl.hidden = !text;
+  answerEl.textContent = text || "";
+  answerEl.className = kind || "";
+}
+
+askForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!state || askBtn.disabled) return;
+
+  askBtn.disabled = true;
+  askedEl.hidden = true;
+  paintAnswer("Đang hỏi trợ lý…", "waiting");
+  try {
+    const data = await call("/api/explain", {
+      fen: state.fen,
+      question: qEl.value.trim(),
+    });
+    // Server trả lại câu hỏi thật sự được dùng — để trống thì nó tự điền.
+    askedEl.textContent = `Hỏi: ${data.question}`;
+    askedEl.hidden = false;
+    paintAnswer(data.answer);
+  } catch (error) {
+    paintAnswer(error.message, "fail");
+  } finally {
+    askBtn.disabled = false;
   }
 });
 

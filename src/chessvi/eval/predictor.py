@@ -198,17 +198,23 @@ class HFPredictor(Predictor):
             model = PeftModel.from_pretrained(model, adapter)
         self._model = model.eval()
 
-    def predict(self, prompt: str) -> str:
+    def predict(self, prompt: str, *, temperature: float | None = None) -> str:
+        """``temperature`` ghi đè mức đặt lúc khởi tạo.
+
+        Cần cho serving: guard sinh lại với nhiệt độ tăng dần sau mỗi lần bị
+        chặn, mà eval thì luôn dùng một mức cố định.
+        """
         import torch  # noqa: PLC0415
 
+        heat = self._temperature if temperature is None else temperature
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._device)
         width = inputs["input_ids"].shape[1]
         with torch.no_grad():
             generated = self._model.generate(
                 **inputs,
                 max_new_tokens=self._max_new_tokens,
-                temperature=self._temperature,
-                do_sample=self._temperature > 0,
+                temperature=heat,
+                do_sample=heat > 0,
                 stopping_criteria=self._stopping(width),
             )
         new_tokens = generated[0][width:]
