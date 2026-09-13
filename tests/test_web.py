@@ -347,3 +347,14 @@ def test_colab_api_cli_co_mac_dinh_hop_ly() -> None:
     # Phải nghe mọi interface, không thì tunnel không vào được.
     assert args.host == "0.0.0.0"  # noqa: S104
     assert args.adapter is None
+
+
+def test_bao_cho_giao_dien_biet_khi_bi_guard_chan() -> None:
+    """Im lặng đưa bản chỉ-fact thì người dùng tưởng trợ lý vốn nói cụt thế."""
+    with _running(_FakeLLM("Chơi Qh8 là thắng.")) as url:
+        _, blocked = _post(f"{url}/api/explain", {"fen": FEN_START})
+    with _running(_FakeLLM("Nf3 phát triển mã, kiểm soát trung tâm.")) as url:
+        _, clean = _post(f"{url}/api/explain", {"fen": FEN_START})
+
+    assert blocked["blocked"] is True
+    assert clean["blocked"] is False

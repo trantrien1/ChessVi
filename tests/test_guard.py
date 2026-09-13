@@ -93,7 +93,9 @@ def test_guard_cho_qua_cau_tra_loi_dung() -> None:
     board = chess.Board(FEN_START)
     result = check_output("Nên đi Nf3 hoặc e4, cả hai đều phát triển.", board)
     assert result.ok
-    assert set(result.checked) == {"Nf3", "e4"}
+    # e4 la nuoc tot tran nen khong duoc soi; xem
+    # test_guard_co_y_khong_soi_nuoc_tot_tran.
+    assert set(result.checked) == {"Nf3"}
     assert bool(result) is True
 
 
@@ -104,10 +106,25 @@ def test_guard_bat_nuoc_bia() -> None:
     assert result.violations == ("Qh8",)
 
 
-def test_guard_bat_ca_nuoc_tot_tran_dung_mot_minh() -> None:
-    """Không có ký hiệu cờ nào khác trong câu vẫn phải bắt được."""
+def test_guard_co_y_khong_soi_nuoc_tot_tran() -> None:
+    """Lỗ hổng đã biết, và là cái giá phải trả — ghi ra đây chứ không giấu.
+
+    ``a5`` trùng hệt cú pháp với tên ô, mà văn giải thích cờ tiếng Việt thì đầy
+    tên ô: "xe trên e1", "tốt ở d5". Soi cả chúng thì đo trên model thật là
+    chặn **100%** câu trả lời, vì một tên ô bị nhận nhầm còn bị đẩy lên bàn
+    ngữ cảnh của ``MoveContext`` và kéo theo mọi nước thật phía sau thành sai.
+
+    Đổi lại: model bịa một nước tốt trần sẽ lọt tới người dùng. Bảng fact cạnh
+    đó vẫn liệt kê nước hợp lệ nên người đọc còn đối chiếu được.
+    """
     board = chess.Board(FEN_START)
-    assert check_output("Cứ đi a5.", board).violations == ("a5",)
+    assert check_output("Cứ đi a5.", board).violations == ()
+
+
+def test_guard_van_bat_nuoc_tot_an_quan_bia() -> None:
+    """Nước tốt ăn quân (``axb5``) là ký hiệu chắc chắn, không phải tên ô."""
+    board = chess.Board(FEN_START)
+    assert check_output("Cứ đi axb5.", board).violations == ("axb5",)
 
 
 def test_guard_cho_phep_ke_lai_mot_bien_theo_thu_tu() -> None:
@@ -120,7 +137,9 @@ def test_guard_bat_nuoc_sai_giua_mot_bien() -> None:
     board = chess.Board(FEN_START)
     result = check_output("Sau 1. e4 e5 2. Qh8 thì hỏng.", board)
     assert result.violations == ("Qh8",)
-    assert "e4" in result.checked, "các nước trước đó vẫn được soi"
+    # e4/e5 là nước tốt trần nên không nằm trong `checked`; xem
+    # test_guard_co_y_khong_soi_nuoc_tot_tran.
+    assert "Qh8" in result.checked
 
 
 def test_bat_100_phan_tram_nuoc_khong_hop_le() -> None:
@@ -128,17 +147,20 @@ def test_bat_100_phan_tram_nuoc_khong_hop_le() -> None:
 
     "Không hợp lệ" định nghĩa theo python-chess chứ không theo so khớp chuỗi:
     ``Qf7`` (thiếu dấu x) vẫn trỏ đúng một nước hợp lệ nên không phải bịa.
+
+    Chỉ sinh nước **có chữ quân**. Nước tốt trần cố ý không được soi — xem
+    test_guard_co_y_khong_soi_nuoc_tot_tran.
     """
     for fen in (FEN_START, FEN_IN_CHECK, FEN_MATE_IN_1):
         board = chess.Board(fen)
         candidates = [
             f"{piece}{file}{rank}"
-            for piece in ("", "K", "Q", "R", "B", "N")
+            for piece in ("K", "Q", "R", "B", "N")
             for file in "abcdefgh"
             for rank in "12345678"
         ]
         illegal = [san for san in candidates if parse_move(board, san) is None]
-        assert len(illegal) > 300, "phải có đủ nhiều case âm để test có ý nghĩa"
+        assert len(illegal) > 250, "phải có đủ nhiều case âm để test có ý nghĩa"
 
         missed = [
             san

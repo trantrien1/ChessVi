@@ -39,7 +39,7 @@ from chessvi.engine.stockfish import StockfishEngine
 from chessvi.logging_setup import configure_logging
 from chessvi.serve.chat import LlamaCppLLM, LocalLLM, RemoteLLM
 from chessvi.serve.guard import guarded_generate
-from chessvi.serve.prompt import build_prompt
+from chessvi.serve.prompt import build_prompt, fallback_answer
 
 logger = logging.getLogger(__name__)
 
@@ -391,10 +391,13 @@ def _make_handler(
             answer = guarded_generate(
                 generate, board, facts, max_regenerations=config.max_regenerations
             )
+            # Nói thẳng cho giao diện biết khi model bị chặn hết lượt. Im lặng
+            # đưa bản chỉ-fact thì người dùng tưởng trợ lý vốn nói cụt thế.
             self._send_json(
                 {
                     "question": question,
                     "answer": answer,
+                    "blocked": answer == fallback_answer(facts),
                     "facts_block": facts_to_prompt(facts),
                 }
             )

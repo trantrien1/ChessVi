@@ -425,7 +425,9 @@ askForm.addEventListener("submit", async (event) => {
       question: qEl.value.trim(),
     });
     // Server trả lại câu hỏi thật sự được dùng — để trống thì nó tự điền.
-    askedEl.textContent = `Hỏi: ${data.question}`;
+    askedEl.textContent = data.blocked
+      ? "Trợ lý bịa nước đi nên bị chặn — dưới đây chỉ là dữ kiện đã xác minh."
+      : `Hỏi: ${data.question}`;
     askedEl.hidden = false;
     paintAnswer(data.answer);
   } catch (error) {
