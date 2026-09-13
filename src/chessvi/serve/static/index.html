@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>chess-vi — demo</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f4f1ea;
+  --panel: #fffdf8;
+  --ink: #22201c;
+  --muted: #6d675c;
+  --line: #ddd6c8;
+  --light-sq: #ecd9b9;
+  --dark-sq: #b58863;
+  --pick: #6aa84f;
+  --last: #d6c23f;
+  --warn: #b4442e;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #191714;
+    --panel: #23201c;
+    --ink: #ece7dd;
+    --muted: #9c9384;
+    --line: #3a352e;
+    --light-sq: #8d8271;
+    --dark-sq: #5c5245;
+    --pick: #7fbb5f;
+    --last: #a8942f;
+    --warn: #e0705a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 24px 16px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 980px; margin: 0 auto; }
+header { margin-bottom: 18px; }
+h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); font-size: 13px; margin: 0; }
+
+.bar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  margin: 16px 0; padding: 12px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+label { font-size: 13px; color: var(--muted); }
+select, button {
+  font: inherit; padding: 6px 12px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+}
+button { cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--muted); }
+button:disabled { opacity: 0.5; cursor: default; }
+#status { margin-left: auto; font-size: 14px; font-variant-numeric: tabular-nums; }
+#status.check { color: var(--warn); font-weight: 600; }
+
+.cols { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+
+/* -- bàn cờ -- */
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: min(70vw, 480px); aspect-ratio: 1;
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  user-select: none;
+}
+.sq {
+  position: relative; display: grid; place-items: center;
+  font-size: min(8.5vw, 42px); line-height: 1; cursor: default;
+}
+.sq.light { background: var(--light-sq); }
+.sq.dark  { background: var(--dark-sq); }
+.sq.playable { cursor: pointer; }
+.sq.picked { box-shadow: inset 0 0 0 4px var(--pick); }
+.sq.last   { box-shadow: inset 0 0 0 3px var(--last); }
+.sq .piece { color: #f8f5ef; text-shadow: 0 0 2px #000, 0 1px 2px #0008; }
+.sq .piece.b { color: #1d1a16; text-shadow: 0 0 2px #fff6, 0 1px 2px #0006; }
+.sq .dot {
+  position: absolute; width: 26%; aspect-ratio: 1; border-radius: 50%;
+  background: var(--pick); opacity: 0.55; pointer-events: none;
+}
+.sq .dot.capture {
+  width: 84%; background: none; opacity: 0.8;
+  border: 4px solid var(--pick); border-radius: 50%;
+}
+.sq .coord {
+  position: absolute; bottom: 1px; right: 3px;
+  font-size: 9px; opacity: 0.45; font-weight: 600;
+}
+
+/* -- bảng fact -- */
+#panel {
+  flex: 1 1 300px; min-width: 280px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 14px 16px;
+}
+#panel h2 {
+  margin: 0 0 10px; font-size: 12px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+}
+dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
+dt { color: var(--muted); font-size: 13px; }
+dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+dd.none { color: var(--muted); }
+.tag {
+  display: inline-block; padding: 1px 7px; border-radius: 20px;
+  background: var(--bg); border: 1px solid var(--line);
+  font-size: 12px; margin: 0 3px 3px 0; font-variant-numeric: tabular-nums;
+}
+details { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+pre {
+  margin: 10px 0 0; padding: 10px; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 7px;
+  font-size: 11.5px; line-height: 1.45; overflow-x: auto; white-space: pre-wrap;
+}
+#err {
+  margin-top: 12px; padding: 9px 12px; border-radius: 7px;
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border: 1px solid var(--warn); color: var(--warn); font-size: 13px;
+}
+footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>chess-vi</h1>
+  <p class="sub">Bạn cầm Trắng. Mọi số liệu bên phải do python-chess tính, không phải model đoán.</p>
+</header>
+
+<div class="bar">
+  <label for="elo">Đối thủ</label>
+  <select id="elo">
+    <option value="800">800 — mới chơi</option>
+    <option value="1100">1100</option>
+    <option value="1500" selected>1500 — trung bình</option>
+    <option value="1900">1900</option>
+    <option value="2400">2400 — rất mạnh</option>
+  </select>
+  <button id="new">Ván mới</button>
+  <span id="status">Đến lượt Trắng</span>
+</div>
+
+<div class="cols">
+  <div id="board"></div>
+  <div id="panel">
+    <h2>Sự thật đã xác minh</h2>
+    <dl>
+      <dt>Lượt đi</dt><dd id="f-turn">—</dd>
+      <dt>Nước thứ</dt><dd id="f-move">—</dd>
+      <dt>Lực lượng</dt><dd id="f-material">—</dd>
+      <dt>Bị chiếu</dt><dd id="f-check">—</dd>
+      <dt>Khai cuộc</dt><dd id="f-opening">—</dd>
+      <dt>Quân bỏ ngỏ</dt><dd id="f-hanging">—</dd>
+      <dt>Nước chiếu</dt><dd id="f-checks">—</dd>
+      <dt>Nước ăn quân</dt><dd id="f-captures">—</dd>
+      <dt>Số nước hợp lệ</dt><dd id="f-count">—</dd>
+    </dl>
+    <details>
+      <summary>Khối fact thô — đúng thứ chatbot sẽ nhận</summary>
+      <pre id="f-block">—</pre>
+    </details>
+    <div id="err" hidden></div>
+  </div>
+</div>
+
+<footer>Đối thủ: Maia theo Elo, Stockfish ở mức cao. Chatbot giải thích chưa nối vào demo này.</footer>
+
+</div>
+
+<script>
+const FILES = "abcdefgh";
+const GLYPH = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
+const errEl = document.getElementById("err");
+const eloEl = document.getElementById("elo");
+
+let state = null;
+let picked = null;
+let busy = false;
+
+/** Ô nào là ô nào: FEN chỉ mô tả quân, ta tự suy ra tên ô. */
+function squareName(rank, file) {
+  return FILES[file] + (8 - rank);
+}
+
+/** Đọc phần quân của FEN thành mảng 8x8. Không suy luận gì thêm. */
+function parsePlacement(fen) {
+  const rows = fen.split(" ")[0].split("/");
+  return rows.map((row) => {
+    const cells = [];
+    for (const ch of row) {
+      if (ch >= "1" && ch <= "8") cells.push(...Array(Number(ch)).fill(null));
+      else cells.push(ch);
+    }
+    return cells;
+  });
+}
+
+function render() {
+  if (!state) return;
+  const grid = parsePlacement(state.fen);
+  const targets = picked ? (state.legal[picked] || []) : [];
+  const myTurn = !busy && !state.game_over && state.turn === "white";
+
+  boardEl.replaceChildren();
+  for (let rank = 0; rank < 8; rank++) {
+    for (let file = 0; file < 8; file++) {
+      const name = squareName(rank, file);
+      const code = grid[rank][file];
+      const sq = document.createElement("div");
+      sq.className = "sq " + ((rank + file) % 2 === 0 ? "light" : "dark");
+      sq.dataset.square = name;
+
+      if (code) {
+        const piece = document.createElement("span");
+        // Dùng một bộ glyph đặc cho cả hai bên, phân biệt bằng màu: trình
+        // duyệt vẽ glyph rỗng và glyph đặc lệch cỡ nhau rất rõ.
+        piece.className = "piece " + (code === code.toLowerCase() ? "b" : "w");
+        piece.textContent = GLYPH[code.toLowerCase()];
+        sq.appendChild(piece);
+      }
+      if (picked === name) sq.classList.add("picked");
+      if (targets.includes(name)) {
+        const dot = document.createElement("span");
+        dot.className = "dot" + (code ? " capture" : "");
+        sq.appendChild(dot);
+      }
+      if (myTurn && (state.legal[name] || targets.includes(name))) {
+        sq.classList.add("playable");
+      }
+      if (file === 0 || rank === 7) {
+        const coord = document.createElement("span");
+        coord.className = "coord";
+        coord.textContent = file === 0 ? String(8 - rank) : FILES[file];
+        sq.appendChild(coord);
+      }
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+function paintPanel() {
+  const f = state.facts;
+  const set = (id, value, empty) => {
+    const el = document.getElementById(id);
+    const blank = value === null || value === undefined || value === "" ||
+                  (Array.isArray(value) && value.length === 0);
+    el.textContent = "";
+    el.classList.toggle("none", blank);
+    if (blank) { el.textContent = empty || "không có"; return; }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = item;
+        el.appendChild(tag);
+      }
+    } else {
+      el.textContent = value;
+    }
+  };
+
+  const diff = f.material_diff;
+  const balance = diff === 0 ? "cân bằng"
+    : (diff > 0 ? `Trắng hơn ${diff}` : `Đen hơn ${-diff}`);
+
+  set("f-turn", f.side_to_move);
+  set("f-move", state.move_number);
+  set("f-material", `Trắng ${f.material.white} – Đen ${f.material.black} (${balance})`);
+  set("f-check", f.in_check ? "có" : "không");
+  set("f-opening", f.opening, "chưa nhận ra");
+  set("f-hanging", f.hanging.map((h) => `${h.piece} ở ${h.square}`));
+  set("f-checks", f.checks_available);
+  set("f-captures", f.captures_available);
+  set("f-count", f.legal_count);
+  document.getElementById("f-block").textContent = state.facts_block;
+}
+
+function paintStatus(note) {
+  let text;
+  if (state.game_over) text = state.result;
+  else if (busy) text = note || "Đang nghĩ…";
+  else text = `Đến lượt ${state.turn_vi}`;
+  if (state.last_move && !busy) text += ` · vừa đi ${state.last_move}`;
+  statusEl.textContent = text;
+  statusEl.classList.toggle("check", state.facts.in_check || state.game_over);
+}
+
+function showError(message) {
+  errEl.hidden = !message;
+  errEl.textContent = message || "";
+}
+
+async function call(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Lỗi ${res.status}`);
+  return data;
+}
+
+function apply(next, note) {
+  state = next;
+  picked = null;
+  render();
+  paintPanel();
+  paintStatus(note);
+}
+
+async function onSquare(name) {
+  if (busy || !state || state.game_over || state.turn !== "white") return;
+
+  if (picked && (state.legal[picked] || []).includes(name)) {
+    const from = picked;
+    busy = true;
+    showError("");
+    apply(state, "Đang đi…");
+    try {
+      apply(await call("/api/move", { fen: state.fen, from, to: name }));
+      if (!state.game_over) {
+        busy = true;
+        paintStatus("Đối thủ đang nghĩ…");
+        render();
+        apply(await call("/api/ai", { fen: state.fen, elo: Number(eloEl.value) }));
+      }
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      busy = false;
+      render();
+      paintStatus();
+    }
+    return;
+  }
+
+  // Bấm vào quân của mình thì chọn; bấm chỗ khác thì bỏ chọn.
+  picked = state.legal[name] ? name : null;
+  render();
+}
+
+boardEl.addEventListener("click", (event) => {
+  const sq = event.target.closest(".sq");
+  if (sq) onSquare(sq.dataset.square);
+});
+
+document.getElementById("new").addEventListener("click", async () => {
+  showError("");
+  try {
+    apply(await call("/api/new"));
+  } catch (error) {
+    showError(error.message);
+  }
+});
+
+call("/api/new").then(apply).catch((error) => showError(error.message));
+</script>
+</body>
+</html>
